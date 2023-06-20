@@ -114,7 +114,7 @@ namespace JNPF.VisualDev.Core
                 var link = await _dbLinkService.GetInfo(entity.DbLinkId);
                 tableList = _databaseService.GetFieldListByNoAsync(link, mainTable);
                 var mainPrimary = tableList.Find(t => t.primaryKey == 1);
-                primaryKey = mainPrimary.field;
+                primaryKey = mainPrimary?.field;
                 StringBuilder feilds = new StringBuilder();
                 tableList.ForEach(item =>
                 {
@@ -2169,12 +2169,13 @@ namespace JNPF.VisualDev.Core
         {
             Dictionary<string, object> templateData = new Dictionary<string, object>();
             var cacheKey = CommonConst.VISUALDEV + _userManager.TenantId + "_" + moldelId;
-            if (_sysCacheService.Exists(cacheKey))
-            {
-                templateData = _sysCacheService.Get(cacheKey).Deserialize<Dictionary<string, object>>();
-            }
-            else
-            {
+            //缓存有问题先注释
+            //if (_sysCacheService.Exists(cacheKey))
+            //{
+            //    templateData = _sysCacheService.Get(cacheKey).Deserialize<Dictionary<string, object>>();
+            //}
+            //else
+            //{
                 foreach (var model in formData)
                 {
                     if (model != null && model.__vModel__ != null)
@@ -2484,7 +2485,7 @@ namespace JNPF.VisualDev.Core
                 }
                 //缓存2分钟
                 _sysCacheService.Set(cacheKey, templateData, TimeSpan.FromMinutes(2));
-            }
+            //}
             return templateData;
         }
 

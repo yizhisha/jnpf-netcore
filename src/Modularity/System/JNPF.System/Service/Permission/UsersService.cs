@@ -663,8 +663,9 @@ namespace JNPF.System.Service.Permission
                   var services = scope.ServiceProvider;
 
                   var _portalService = App.GetService<IPortalService>(services);
-                  var _organizeAdministratorService = App.GetService<IOrganizeAdministratorService>(services);
-                  userDataScope = await _organizeAdministratorService.GetUserDataScope(userId);
+                  //暂时注释数据库没有OrganizeAdministrator
+                  //var _organizeAdministratorService = App.GetService<IOrganizeAdministratorService>(services);
+                  //userDataScope = await _organizeAdministratorService.GetUserDataScope(userId);
                   defaultPortalId = await _portalService.GetDefault();
               });
             var sysConfigInfo = await _sysConfigService.GetInfo("SysConfig", "tokentimeout");
@@ -692,7 +693,8 @@ namespace JNPF.System.Service.Permission
             data.prevLoginIPAddressName = await NetUtil.GetLocation(data.prevLoginIPAddress);
             data.loginPlatForm = clent.String;
             data.subsidiary = await _organizeService.GetSubsidiary(data.organizeId, data.isAdministrator);
-            data.subordinates = await this.GetSubordinates(userId);
+            //性能问题先注释
+            //data.subordinates = await this.GetSubordinates(userId);
             data.positionIds = data.positionId == null ? null : await GetPosition(data.positionId);
             data.roleIds = data.roleId == null ? null : data.roleId.Split(',').ToArray();
             data.dataScope = userDataScope;

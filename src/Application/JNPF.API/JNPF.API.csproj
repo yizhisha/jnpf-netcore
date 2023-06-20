@@ -17,6 +17,16 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Content Update="appsettings.Development.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </Content>
+    <Content Update="appsettings.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </Content>
     <Content Update="wwwroot\Template\appWorkflowForm.vue.vm">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
@@ -80,9 +90,7 @@
   </ItemGroup>
 
   <ProjectExtensions>
-    <VisualStudio>
-      <UserProperties appsettings_1json__JsonSchema="" />
-    </VisualStudio>
+    <VisualStudio><UserProperties /></VisualStudio>
   </ProjectExtensions>
 
 </Project>

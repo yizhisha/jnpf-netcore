@@ -236,7 +236,7 @@ namespace JNPF.VisualDev
                     await _visualDevRepository.Context.Updateable<FlowEngineEntity>(engineEntity).CallEntityMethod(m => m.LastModify()).ExecuteCommandAsync();
                 }
 
-                await _visualDevRepository.Context.Updateable(entity).IgnoreColumns(ignoreAllNullColumns: true).CallEntityMethod(m => m.LastModify()).ExecuteCommandAsync();
+                var visualDev = await _visualDevRepository.Context.Updateable(entity).IgnoreColumns(ignoreAllNullColumns: true).CallEntityMethod(m => m.LastModify()).ExecuteCommandAsync();
 
                 //关闭事务
                 _visualDevRepository.Ado.CommitTran();
