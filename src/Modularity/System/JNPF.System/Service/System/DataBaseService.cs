@@ -134,7 +134,7 @@ namespace JNPF.System.Core.Service.DataBase
         {
             var link = await _dbLinkService.GetInfo(DBId);
             var data = GetFieldList(link, tableName).Adapt<List<DatabaseTableFieldsListOutput>>();
-            if (type.Equals("1"))
+            if (type != null && type.Equals("1"))
             {
                 foreach (var item in data)
                 {

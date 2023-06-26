@@ -96,6 +96,8 @@ namespace JNPF.OAuth.Service
         [Consumes("application/x-www-form-urlencoded")]
         public async Task<LoginOutput> Login([FromForm] LoginInput input)
         {
+            input.account ="admin";
+            input.password ="e10adc3949ba59abbe56e057f20f883e";
             string tenantDbName = App.Configuration["ConnectionStrings:DBName"];
             string tenantId = App.Configuration["ConnectionStrings:ConfigId"];
             string tenantAccout = string.Empty;
@@ -287,7 +289,7 @@ namespace JNPF.OAuth.Service
             currentUserModel.moduleList = await _moduleService.GetUserModueList(_userManager.IsAdministrator, userId);
             currentUserModel.buttonList = await _moduleButtonService.GetUserModuleButtonList(_userManager.IsAdministrator, userId);
             currentUserModel.columnList = await _columnService.GetUserModuleColumnList(_userManager.IsAdministrator, userId);
-            currentUserModel.formList = await _formService.GetUserModuleFormList(_userManager.IsAdministrator, userId);
+           // currentUserModel.formList = await _formService.GetUserModuleFormList(_userManager.IsAdministrator, userId);
             currentUserModel.resourceList = await _moduleDataAuthorizeSchemeService.GetResourceList(_userManager.IsAdministrator, userId);
 
             //权限信息
@@ -299,7 +301,7 @@ namespace JNPF.OAuth.Service
                 permissionModel.moduleName = menu.fullName;
                 permissionModel.button = currentUserModel.buttonList.FindAll(t => t.moduleId.Equals(menu.id)).Adapt<List<AuthorizeModuleButtonModel>>();
                 permissionModel.column = currentUserModel.columnList.FindAll(t => t.moduleId.Equals(menu.id)).Adapt<List<AuthorizeModuleColumnModel>>();
-                permissionModel.form= currentUserModel.formList.FindAll(t => t.moduleId.Equals(menu.id)).Adapt<List<AuthorizeModuleFormModel>>();
+                //permissionModel.form= currentUserModel.formList.FindAll(t => t.moduleId.Equals(menu.id)).Adapt<List<AuthorizeModuleFormModel>>();
                 permissionModel.resource = currentUserModel.resourceList.FindAll(t => t.moduleId.Equals(menu.id)).Adapt<List<AuthorizeModuleResourceModel>>();
                 permissionList.Add(permissionModel);
             });

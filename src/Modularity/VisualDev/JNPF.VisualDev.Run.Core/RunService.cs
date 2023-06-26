@@ -404,18 +404,21 @@ namespace JNPF.VisualDev.Core
                     }
                 }
             }
-            foreach (var entryMap in dataMap)
+            if(dataMap != null)
             {
-                if (entryMap.Value != null)
+                foreach (var entryMap in dataMap)
                 {
-                    var model = modelList.Where(m => m.__vModel__ == entryMap.Key.ToString()).FirstOrDefault();
-                    if (model != null)
+                    if (entryMap.Value != null)
                     {
-                        if (entryMap.Key.Equals(model.__vModel__))
+                        var model = modelList.Where(m => m.__vModel__ == entryMap.Key.ToString()).FirstOrDefault();
+                        if (model != null)
                         {
-                            if (mainfeild.ToString().Contains(entryMap.Key))
+                            if (entryMap.Key.Equals(model.__vModel__))
                             {
-                                newDataMap[entryMap.Key] = entryMap.Value;
+                                if (mainfeild.ToString().Contains(entryMap.Key))
+                                {
+                                    newDataMap[entryMap.Key] = entryMap.Value;
+                                }
                             }
                         }
                     }
@@ -2169,6 +2172,7 @@ namespace JNPF.VisualDev.Core
         {
             Dictionary<string, object> templateData = new Dictionary<string, object>();
             var cacheKey = CommonConst.VISUALDEV + _userManager.TenantId + "_" + moldelId;
+            //_sysCacheService.Set(cacheKey, "12345");
             //缓存有问题先注释
             //if (_sysCacheService.Exists(cacheKey))
             //{
@@ -2176,7 +2180,7 @@ namespace JNPF.VisualDev.Core
             //}
             //else
             //{
-                foreach (var model in formData)
+            foreach (var model in formData)
                 {
                     if (model != null && model.__vModel__ != null)
                     {

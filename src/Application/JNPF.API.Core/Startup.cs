@@ -77,17 +77,16 @@ namespace JNPF.API.Core
             services.AddViewEngine();
 
             #region minio
-
-            services.AddOSSService(option => 
-            {
-                option.Provider = OSSProvider.Minio;
-                option.Endpoint = "192.168.0.60:9000";
-                option.AccessKey = "minioadmin";
-                option.SecretKey = "minioadmin";
-                option.IsEnableHttps = false;
-                option.IsEnableCache = true;
-            });
-
+            //services.AddOSSService(option => 
+            //{
+            //    option.Provider = OSSProvider.Minio;
+            //    option.Endpoint = "192.168.0.60:9000";
+            //    option.AccessKey = "minioadmin";
+            //    option.SecretKey = "minioadmin";
+            //    option.IsEnableHttps = false;
+            //    option.IsEnableCache = true;
+            //});
+            OSSServiceConfigure(services);
             #endregion
 
             #region 微信
@@ -232,6 +231,31 @@ namespace JNPF.API.Core
             });
 
             #endregion
+        }
+
+        /// <summary>
+        /// 配置对象储存
+        /// </summary>
+        /// <param name="services"></param>
+        private void OSSServiceConfigure(IServiceCollection services)
+        {
+            var fileStoreType = App.Configuration["JNPF_APP:OSS:Provider"];
+            var Provider = (OSSProvider)Enum.Parse(typeof(OSSProvider), App.Configuration["JNPF_APP:OSS:Provider"]);
+            var Endpoint = $"{App.Configuration["JNPF_APP:OSS:Endpoint"]}";
+            var AccessKey = $"{App.Configuration["JNPF_APP:OSS:AccessKey"]}";
+            var SecretKey = $"{App.Configuration["JNPF_APP:OSS:SecretKey"]}";
+            var IsEnableHttps = Convert.ToBoolean(App.Configuration["JNPF_APP:OSS:IsEnableHttps"]);
+            var IsEnableCache = Convert.ToBoolean(App.Configuration["JNPF_APP:OSS:IsEnableCache"]);
+
+            services.AddOSSService(fileStoreType, option =>
+            {
+                option.Provider = Provider;//服务器
+                option.Endpoint = Endpoint;//地址
+                option.AccessKey = AccessKey;//服务访问玥
+                option.SecretKey = SecretKey;//服务密钥
+                option.IsEnableHttps = IsEnableHttps;//是否启用https
+                option.IsEnableCache = IsEnableCache;//是否启用缓存
+            });
         }
     }
 }

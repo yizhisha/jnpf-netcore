@@ -366,6 +366,17 @@ namespace JNPF.System.Service.System
             else
             {
                 var menus = await _moduleRepository.Where(a => a.EnabledMark.Equals("1") && a.Category.Equals("Web") && a.DeleteMark == null).Select<ModuleEntity>().OrderBy(q => q.ParentId).OrderBy(q => q.SortCode).ToListAsync();
+                menus.Add(new ModuleEntity
+                {
+                    Type=3,
+                    FullName= "动态模块",
+                    EnCode= "dynamicModel",
+                    Icon= "icon-ym icon-ym-webDesign",
+                    UrlAddress= "model/3231",
+                    PropertyJson = "{\"moduleId\":\"441123403869454405\",\"iconBackgroundColor\":\"\",\"isTree\":0}",
+                    Id ="441123403869454405",
+                    ParentId = "-1"
+                });
                 output = menus.Adapt<List<ModuleNodeOutput>>();
             }
             return output.ToTree("-1");

@@ -294,6 +294,7 @@ namespace JNPF.System.Core.Service.DictionaryData
         public async Task<List<DictionaryDataEntity>> GetList(string dictionaryTypeId)
         {
             var entity = await _dictionaryTypeService.GetInfo(dictionaryTypeId);
+            if (entity == null) return new List<DictionaryDataEntity>();
             return await _dictionaryDataRepository.Entities.Where(d => d.DictionaryTypeId == entity.Id && d.DeleteMark == null).OrderBy(o => o.SortCode).ToListAsync();
         }
 
