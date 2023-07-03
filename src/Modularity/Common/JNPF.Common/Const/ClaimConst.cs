@@ -37,5 +37,10 @@ namespace JNPF.Common.Const
         /// 租户ID
         /// </summary>
         public const string TENANT_DB_NAME = "TenantDbName";
+
+        /// <summary>
+        /// 单一登录方式（1：后登录踢出先登录 2：同时登录）
+        /// </summary>
+        public const string SINGLELOGIN = "SingleLogin";
     }
 }

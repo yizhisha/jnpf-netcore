@@ -334,6 +334,11 @@ namespace JNPF.VisualDev.Entitys.Model.VisualDevModelData
         public string relationField { get; set; }
 
         /// <summary>
+        /// 关联表单属性 显示 字段
+        /// </summary>
+        public string showField { get; set; }
+
+        /// <summary>
         /// 流程ID
         /// </summary>
         public string flowId { get; set; }

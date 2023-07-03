@@ -852,6 +852,313 @@ namespace JNPF.System.Core.Service.DataBase
         }
 
         /// <summary>
+        /// 根据链接获取分页数据
+        /// </summary>
+        /// <returns></returns>
+        [NonAction]
+        public PageResult<Dictionary<string, object>> GetInterFaceData(DbLinkEntity link, string strSql, VisualDevModelListQueryInput pageInput, ColumnDesignModel columnDesign, List<IConditionalModel> dataPermissions, Dictionary<string, string> outColumnName = null)
+        {
+            if (link != null)
+            {
+                db.AddConnection(new ConnectionConfig()
+                {
+                    ConfigId = link.Id,
+                    DbType = ToDbType(link.DbType),
+                    ConnectionString = ToConnectionString(link),
+                    InitKeyType = InitKeyType.Attribute,
+                    IsAutoCloseConnection = true
+                });
+
+                ChangeDatabase(link);
+            }
+
+            try
+            {
+                int total = 0;
+                //将查询的关键字json转成Dictionary
+                Dictionary<string, object> keywordJsonDic = string.IsNullOrEmpty(pageInput.json) ? null : pageInput.json.Deserialize<Dictionary<string, object>>();
+                var conModels = new List<IConditionalModel>();
+                if (keywordJsonDic != null)
+                {
+                    foreach (KeyValuePair<string, object> item in keywordJsonDic)
+                    {
+                        var model = columnDesign.searchList.Find(it => it.__vModel__.Equals(item.Key));
+                        var type = model.__config__.jnpfKey;
+                        switch (type)
+                        {
+                            case "date":
+                                {
+                                    var timeRange = item.Value.ToObject<List<string>>();
+                                    var startTime = Ext.GetDateTime(timeRange.First());
+                                    var endTime = Ext.GetDateTime(timeRange.Last());
+                                    if (model.format == "yyyy-MM-dd HH:mm:ss")
+                                    {
+                                        conModels.Add(new ConditionalModel
+                                        {
+                                            FieldName = item.Key,
+                                            ConditionalType = ConditionalType.GreaterThanOrEqual,
+                                            FieldValue = startTime.ToDateTimeString(),
+                                            FieldValueConvertFunc = it => Convert.ToDateTime(it)
+                                        });
+                                        conModels.Add(new ConditionalModel
+                                        {
+                                            FieldName = item.Key,
+                                            ConditionalType = ConditionalType.LessThanOrEqual,
+                                            FieldValue = endTime.ToDateTimeString(),
+                                            FieldValueConvertFunc = it => Convert.ToDateTime(it)
+                                        });
+                                    }
+                                    else
+                                    {
+                                        conModels.Add(new ConditionalModel
+                                        {
+                                            FieldName = item.Key,
+                                            ConditionalType = ConditionalType.GreaterThanOrEqual,
+                                            FieldValue = new DateTime(startTime.ToDate().Year, startTime.ToDate().Month, startTime.ToDate().Day, 0, 0, 0, 0).ToString(),
+                                            FieldValueConvertFunc = it => Convert.ToDateTime(it)
+                                        });
+                                        conModels.Add(new ConditionalModel
+                                        {
+                                            FieldName = item.Key,
+                                            ConditionalType = ConditionalType.LessThanOrEqual,
+                                            FieldValue = new DateTime(endTime.ToDate().Year, endTime.ToDate().Month, endTime.ToDate().Day, 23, 59, 59, 999).ToString(),
+                                            FieldValueConvertFunc = it => Convert.ToDateTime(it)
+                                        });
+                                    }
+                                }
+                                break;
+                            case "time":
+                                {
+                                    var timeRange = item.Value.ToString().Deserialize<List<string>>();
+                                    var startTime = Ext.GetDateTime(timeRange.First());
+                                    var endTime = Ext.GetDateTime(timeRange.Last());
+                                    conModels.Add(new ConditionalModel
+                                    {
+                                        FieldName = item.Key,
+                                        ConditionalType = ConditionalType.GreaterThanOrEqual,
+                                        FieldValue = new DateTime(startTime.ToDate().Year, startTime.ToDate().Month, startTime.ToDate().Day, startTime.ToDate().Hour, startTime.ToDate().Minute, startTime.ToDate().Second, 0).ToString(),
+                                        FieldValueConvertFunc = it => Convert.ToDateTime(it)
+                                    });
+                                    conModels.Add(new ConditionalModel
+                                    {
+                                        FieldName = item.Key,
+                                        ConditionalType = ConditionalType.LessThanOrEqual,
+                                        FieldValue = new DateTime(endTime.ToDate().Year, endTime.ToDate().Month, endTime.ToDate().Day, endTime.ToDate().Hour, endTime.ToDate().Minute, endTime.ToDate().Second, 0).ToString(),
+                                        FieldValueConvertFunc = it => Convert.ToDateTime(it)
+                                    });
+                                }
+                                break;
+                            case "createTime":
+                                {
+                                    var timeRange = item.Value.ToObject<List<string>>();
+                                    var startTime = Ext.GetDateTime(timeRange.First());
+                                    var endTime = Ext.GetDateTime(timeRange.Last());
+                                    conModels.Add(new ConditionalModel
+                                    {
+                                        FieldName = item.Key,
+                                        ConditionalType = ConditionalType.GreaterThanOrEqual,
+                                        FieldValue = new DateTime(startTime.ToDate().Year, startTime.ToDate().Month, startTime.ToDate().Day, 0, 0, 0, 0).ToString(),
+                                        FieldValueConvertFunc = it => Convert.ToDateTime(it)
+                                    });
+                                    conModels.Add(new ConditionalModel
+                                    {
+                                        FieldName = item.Key,
+                                        ConditionalType = ConditionalType.LessThanOrEqual,
+                                        FieldValue = new DateTime(endTime.ToDate().Year, endTime.ToDate().Month, endTime.ToDate().Day, 23, 59, 59, 999).ToString(),
+                                        FieldValueConvertFunc = it => Convert.ToDateTime(it)
+                                    });
+                                }
+                                break;
+                            case "modifyTime":
+                                {
+                                    var timeRange = item.Value.ToObject<List<string>>();
+                                    var startTime = Ext.GetDateTime(timeRange.First());
+                                    var endTime = Ext.GetDateTime(timeRange.Last());
+                                    conModels.Add(new ConditionalModel
+                                    {
+                                        FieldName = item.Key,
+                                        ConditionalType = ConditionalType.GreaterThanOrEqual,
+                                        FieldValue = new DateTime(startTime.ToDate().Year, startTime.ToDate().Month, startTime.ToDate().Day, 0, 0, 0, 0).ToString(),
+                                        FieldValueConvertFunc = it => Convert.ToDateTime(it)
+                                    });
+                                    conModels.Add(new ConditionalModel
+                                    {
+                                        FieldName = item.Key,
+                                        ConditionalType = ConditionalType.LessThanOrEqual,
+                                        FieldValue = new DateTime(endTime.ToDate().Year, endTime.ToDate().Month, endTime.ToDate().Day, 23, 59, 59, 999).ToString(),
+                                        FieldValueConvertFunc = it => Convert.ToDateTime(it)
+                                    });
+                                }
+                                break;
+                            case "numInput":
+                                {
+                                    List<string> numArray = item.Value.ToObject<List<string>>();
+                                    var startNum = numArray.First().ToInt();
+                                    var endNum = numArray.Last() == null ? Int64.MaxValue : numArray.Last().ToInt();
+                                    conModels.Add(new ConditionalModel { FieldName = item.Key, ConditionalType = ConditionalType.GreaterThanOrEqual, FieldValue = startNum.ToString() });
+                                    conModels.Add(new ConditionalModel { FieldName = item.Key, ConditionalType = ConditionalType.LessThanOrEqual, FieldValue = endNum.ToString() });
+                                }
+                                break;
+                            case "calculate":
+                                {
+                                    List<string> numArray = item.Value.ToObject<List<string>>();
+                                    var startNum = numArray.First().ToInt();
+                                    var endNum = numArray.Last() == null ? Int64.MaxValue : numArray.Last().ToInt();
+                                    conModels.Add(new ConditionalModel { FieldName = item.Key, ConditionalType = ConditionalType.GreaterThanOrEqual, FieldValue = startNum.ToString() });
+                                    conModels.Add(new ConditionalModel { FieldName = item.Key, ConditionalType = ConditionalType.LessThanOrEqual, FieldValue = endNum.ToString() });
+                                }
+                                break;
+                            case "checkbox":
+                                {
+                                    conModels.Add(new ConditionalModel { FieldName = item.Key, ConditionalType = ConditionalType.Like, FieldValue = item.Value.ToString() });
+                                }
+                                break;
+                            case "posSelect":
+                                {
+                                    if (model.multiple)
+                                    {
+                                        conModels.Add(new ConditionalModel { FieldName = item.Key, ConditionalType = ConditionalType.Like, FieldValue = item.Value.ToString() });
+                                    }
+                                    else
+                                    {
+                                        conModels.Add(new ConditionalModel { FieldName = item.Key, ConditionalType = ConditionalType.Equal, FieldValue = item.Value.ToString().Replace("\r\n ", "").Replace("\r\n", "").Replace(" ", "") });
+                                    }
+                                }
+                                break;
+                            case "userSelect":
+                                {
+                                    if (model.multiple)
+                                    {
+                                        conModels.Add(new ConditionalModel { FieldName = item.Key, ConditionalType = ConditionalType.Like, FieldValue = item.Value.ToString() });
+                                    }
+                                    else
+                                    {
+                                        conModels.Add(new ConditionalModel { FieldName = item.Key, ConditionalType = ConditionalType.Equal, FieldValue = item.Value.ToString().Replace("\r\n ", "").Replace("\r\n", "").Replace(" ", "") });
+                                    }
+                                }
+                                break;
+                            case "depSelect":
+                                {
+                                    if (model.multiple)
+                                    {
+                                        conModels.Add(new ConditionalModel { FieldName = item.Key, ConditionalType = ConditionalType.Like, FieldValue = item.Value.ToString() });
+                                    }
+                                    else
+                                    {
+                                        conModels.Add(new ConditionalModel { FieldName = item.Key, ConditionalType = ConditionalType.Equal, FieldValue = item.Value.ToString().Replace("\r\n ", "").Replace("\r\n", "").Replace(" ", "") });
+                                    }
+                                }
+                                break;
+                            case "cascader":
+                                {
+                                    conModels.Add(new ConditionalModel { FieldName = item.Key, ConditionalType = ConditionalType.Like, FieldValue = item.Value.ToString().Replace("\r\n ", "").Replace("\r\n", "").Replace(" ", "") });
+                                }
+                                break;
+                            case "treeSelect":
+                                {
+                                    if (item.Value.IsNotEmptyOrNull() && item.Value.ToString().Contains("["))
+                                    {
+                                        var value = item.Value?.ToString().Deserialize<List<string>>();
+                                        if (value.Any()) conModels.Add(new ConditionalModel { FieldName = item.Key, ConditionalType = ConditionalType.Like, FieldValue = value.LastOrDefault() });
+                                    }
+                                    else conModels.Add(new ConditionalModel { FieldName = item.Key, ConditionalType = ConditionalType.Like, FieldValue = item.Value.ToString() });
+                                }
+                                break;
+                            case "address":
+                                {
+                                    //多选时为模糊查询
+                                    if (model.multiple)
+                                    {
+                                        var value = item.Value?.ToString().Deserialize<List<string>>();
+                                        if (value.Any()) conModels.Add(new ConditionalModel { FieldName = item.Key, ConditionalType = ConditionalType.Like, FieldValue = value.LastOrDefault() });
+                                    }
+                                    else
+                                    {
+                                        conModels.Add(new ConditionalModel { FieldName = item.Key, ConditionalType = ConditionalType.Equal, FieldValue = item.Value.ToString().Replace("\r\n ", "").Replace("\r\n", "").Replace(" ", "") });
+                                    }
+                                }
+                                break;
+                            case "currOrganize":
+                                {
+                                    var value = item.Value?.ToString().Deserialize<List<string>>();
+                                    if (value.Any()) conModels.Add(new ConditionalModel { FieldName = item.Key, ConditionalType = ConditionalType.InLike, FieldValue = value.LastOrDefault() });
+                                }
+                                break;
+                            case "comSelect":
+                                {
+                                    var value = item.Value?.ToString().Deserialize<List<string>>();
+                                    if (value.Any()) conModels.Add(new ConditionalModel { FieldName = item.Key, ConditionalType = ConditionalType.InLike, FieldValue = value.LastOrDefault() });
+                                }
+                                break;
+                            case "select":
+                                {
+                                    //多选时为模糊查询
+                                    if (model.multiple)
+                                    {
+                                        conModels.Add(new ConditionalModel { FieldName = item.Key, ConditionalType = ConditionalType.Like, FieldValue = item.Value.ToString() });
+                                    }
+                                    else
+                                    {
+                                        conModels.Add(new ConditionalModel { FieldName = item.Key, ConditionalType = ConditionalType.Equal, FieldValue = item.Value.ToString().Replace("\r\n ", "").Replace("\r\n", "").Replace(" ", "") });
+                                    }
+                                }
+                                break;
+                            default:
+                                {
+                                    if (model.searchType == 2)
+                                    {
+                                        conModels.Add(new ConditionalModel { FieldName = item.Key, ConditionalType = ConditionalType.Like, FieldValue = item.Value.ToString() });
+                                    }
+                                    else if (model.searchType == 1)
+                                    {
+                                        conModels.Add(new ConditionalModel { FieldName = item.Key, ConditionalType = ConditionalType.Equal, FieldValue = item.Value.ToString().Replace("\r\n ", "").Replace("\r\n", "").Replace(" ", "") });
+                                    }
+                                }
+                                break;
+                        }
+                    }
+                }
+
+                if (db.CurrentConnectionConfig.DbType == SqlSugar.DbType.Oracle)
+                {
+                    strSql = strSql.Replace(";", "");
+                }
+
+                var sidx = pageInput.sidx.IsNotEmptyOrNull() && pageInput.sort.IsNotEmptyOrNull();//按前端参数排序
+                var defaultSidx = columnDesign.defaultSidx.IsNotEmptyOrNull() && columnDesign.sort.IsNotEmptyOrNull();//按模板默认排序
+
+                var dt = db.SqlQueryable<object>(strSql).Where(conModels).Where(dataPermissions)
+                    .OrderByIF(sidx, pageInput.sidx + " " + pageInput.sort)
+                    .OrderByIF(!sidx && defaultSidx, columnDesign.defaultSidx + " " + columnDesign.sort)
+                    .ToDataTablePage(pageInput.currentPage, pageInput.pageSize, ref total);
+
+                //如果有字段别名 替换 ColumnName
+                if (outColumnName != null && outColumnName.Count > 0)
+                {
+                    var resultKey = string.Empty;
+                    for (var i = 0; i < dt.Columns.Count; i++)
+                        dt.Columns[i].ColumnName = outColumnName.TryGetValue(dt.Columns[i].ColumnName.ToUpper(), out resultKey) == true ? outColumnName[dt.Columns[i].ColumnName.ToUpper()] : dt.Columns[i].ColumnName.ToUpper();
+                }
+
+                return new PageResult<Dictionary<string, object>>()
+                {
+                    pagination = new PageResult()
+                    {
+                        pageIndex = pageInput.currentPage,
+                        pageSize = pageInput.pageSize,
+                        total = total
+                    },
+                    list = dt.ToObject<List<Dictionary<string, object>>>()
+                };
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e.Message);
+                throw;
+            }
+        }
+
+        /// <summary>
         /// 表是否存在
         /// </summary>
         /// <param name="link"></param>

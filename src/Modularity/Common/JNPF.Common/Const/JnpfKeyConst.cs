@@ -89,5 +89,10 @@
         /// 弹窗选择
         /// </summary>
         public const string POPUPSELECT = "popupSelect";
+
+        /// <summary>
+        /// 所属组织
+        /// </summary>
+        public const string CURRORGANIZE = "currOrganize";
     }
 }

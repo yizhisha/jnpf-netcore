@@ -1,5 +1,6 @@
 ﻿using JNPF.Common.Core.Manager;
 using JNPF.Common.Enum;
+using JNPF.Common.Extension;
 using JNPF.Common.Filter;
 using JNPF.DataEncryption;
 using JNPF.Dependency;
@@ -457,6 +458,30 @@ namespace JNPF.System.Core.Service.DataInterFace
             //        var result1 = await entity.Path.SetQueries(dic).GetAsStringAsync();
             //        return JSON.Deserialize<RESTfulResult<object>>(result1).data;
             //}
+        }
+
+        public void ReplaceParameterValue(DataInterfaceEntity entity, Dictionary<string, string> dic)
+        {
+            if (dic.IsNotEmptyOrNull() && entity.IsNotEmptyOrNull() && entity.RequestParameters.IsNotEmptyOrNull())
+            {
+                var parameterList = entity.RequestParameters.ToList<DataInterfaceReqParameter>();
+                foreach (var item in parameterList)
+                {
+                    if (dic.Keys.Contains(item.field))
+                    {
+                        item.value = dic[item.field].ToString();
+                    }
+                    if (entity.DataType == 1)
+                    {
+                        entity.Query = entity.Query.Replace("{" + item.field + "}", "'" + item.value + "'");
+                    }
+                    else
+                    {
+                        entity.Query = entity.Query.Replace("{" + item.field + "}", item.value);
+                    }
+                }
+                entity.RequestParameters = parameterList.Serialize();
+            }
         }
         #endregion
     }

@@ -62,5 +62,10 @@ namespace JNPF.Common.Const
         /// 在线开发缓存
         /// </summary>
         public const string VISUALDEV = "visualdev_";
+
+        /// <summary>
+        /// 任务号缓存  int32 唯一id
+        /// </summary>
+        public const string CACHE_KEY_TASKID = "taskId";
     }
 }

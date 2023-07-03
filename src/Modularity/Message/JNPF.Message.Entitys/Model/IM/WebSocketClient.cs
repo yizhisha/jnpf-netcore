@@ -78,5 +78,16 @@ namespace JNPF.Message.Entitys.Model.IM
             var msg = Encoding.UTF8.GetBytes(message);
             return WebSocket.SendAsync(new ArraySegment<byte>(msg, 0, msg.Length), WebSocketMessageType.Text, true, CancellationToken.None);
         }
+
+        /// <summary>
+        /// 单一登录方式（1：后登录踢出先登录 2：同时登录）
+        /// </summary>
+        public string SingleLogin { get; set; }
+
+
+        /// <summary>
+        /// token
+        /// </summary>
+        public string Token { get; set; }
     }
 }

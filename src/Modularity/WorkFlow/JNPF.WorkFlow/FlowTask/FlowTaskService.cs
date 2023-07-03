@@ -678,7 +678,7 @@ namespace JNPF.WorkFlow.Core.Service.FlowTask
                 _logger.LogInformation("提交日志:" + ex.Message + ",错误详情:" + ex.StackTrace);
             }
         }
-
+        
         /// <summary>
         /// 审批(同意)
         /// </summary>
@@ -2550,6 +2550,54 @@ namespace JNPF.WorkFlow.Core.Service.FlowTask
                 return rejectNodeList.Any(x => x.NodeType.Equals("subFlow"));
             }
         }
+
+        /// <summary>
+        /// 递归节点下所有节点
+        /// </summary>
+        /// <param name="flowTaskNodeList"></param>
+        /// <param name="nodeNext"></param>
+        /// <param name="rejectTaskNodeEntityList"></param>
+        private void GetAllNextNode(List<FlowTaskNodeEntity> flowTaskNodeList, string nodeNext, List<FlowTaskNodeEntity> rejectTaskNodeEntityList)
+        {
+            var nextNodes = nodeNext.Split(",").ToList();
+            var flowTaskNodeEntityList = flowTaskNodeList.FindAll(x => nextNodes.Contains(x.NodeCode));
+            rejectTaskNodeEntityList = rejectTaskNodeEntityList.Union(flowTaskNodeEntityList).ToList();
+            foreach (var item in flowTaskNodeEntityList)
+            {
+                if (!item.NodeCode.Equals("end"))
+                {
+                    GetAllNextNode(flowTaskNodeList, item.NodeNext, rejectTaskNodeEntityList);
+                }
+            }
+        }
+
+        /// <summary>
+        /// 根据表单数据解析模板获取流程节点
+        /// </summary>
+        /// <param name="flowEngineEntity"></param>
+        /// <param name="fromData"></param>
+        /// <param name="taskId"></param>
+        /// <returns></returns>
+        private List<FlowTaskNodeEntity> ParsingTemplateGetNodeList(FlowEngineEntity flowEngineEntity, string fromData, string taskId)
+        {
+            var taskNodeList = new List<TaskNodeModel>();
+            var flowTemplateJsonModel = flowEngineEntity.FlowTemplateJson.Deserialize<FlowTemplateJsonModel>();
+            #region 流程模板所有节点
+            var flowTemplateJsonModelList = new List<FlowTemplateJsonModel>();
+            var childNodeIdList = new List<string>();
+            GetChildNodeIdList(flowTemplateJsonModel, childNodeIdList);
+            GetFlowTemplateList(flowTemplateJsonModel, flowTemplateJsonModelList);
+            #endregion
+            GetFlowTemplateAll(flowTemplateJsonModel, taskNodeList, flowTemplateJsonModelList, childNodeIdList);
+            if (fromData.IsNullOrEmpty())
+            {
+                return taskNodeList.Adapt<List<FlowTaskNodeEntity>>();
+            }
+            DeleteConditionTaskNodeModel(taskNodeList, fromData, new Dictionary<string, string>(), new Dictionary<string, object>());
+            var flowNodeList = taskNodeList.Adapt<List<FlowTaskNodeEntity>>();
+            DeleteEmptyOrTimerTaskNode(flowNodeList);
+            return flowNodeList;
+        }
         #endregion
 
         #region 经办处理
@@ -2820,6 +2868,7 @@ namespace JNPF.WorkFlow.Core.Service.FlowTask
                 return flowTaskOperatorEntities;
             }
         }
+
         #endregion
 
         #region 子流程处理

@@ -27,6 +27,7 @@ using SqlSugar;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Threading.Tasks;
 using UAParser;
 
@@ -838,6 +839,19 @@ namespace JNPF.System.Service.Permission
         {
             var ids = PositionIds.Split(",");
             return await _positionRepository.Entities.In(it => it.Id, ids).Select(it => new { id = it.Id, name = it.FullName }).MergeTable().Select<PositionInfo>().ToListAsync();
+        }
+
+        /// <summary>
+        /// 表达式获取指定字段的用户列表
+        /// </summary>
+        /// <param name="expression">where 条件表达式</param>
+        /// <param name="select">select 选择字段表达式</param>
+        /// <returns></returns>
+        [NonAction]
+        public async Task<List<UserEntity>> GetUserListByExp(Expression<Func<UserEntity, bool>> expression, Expression<Func<UserEntity, UserEntity>> select)
+        {
+            var entityList = await _userRepository.AsQueryable().Where(expression).Select(select).ToListAsync();
+            return entityList;
         }
         #endregion
     }

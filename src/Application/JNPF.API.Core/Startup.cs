@@ -89,6 +89,8 @@ namespace JNPF.API.Core
             OSSServiceConfigure(services);
             #endregion
 
+            services.AddWebSocketManager(); //注册WebSocket
+
             #region 微信
             services.AddSenparcGlobalServices(App.Configuration)//Senparc.CO2NET 全局注册
                         .AddSenparcWeixinServices(App.Configuration);//Senparc.Weixin 注册（如果使用Senparc.Weixin SDK则添加）

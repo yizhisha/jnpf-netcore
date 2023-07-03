@@ -364,12 +364,12 @@ namespace JNPF.System.Service.System
         [NonAction]
         public async Task<List<PrintDevListOutput>> GetOutList()
         {
-            return await db.Queryable<PrintDevEntity, UserEntity, UserEntity, DictionaryDataEntity>((a, b, c, d) => new JoinQueryInfos(JoinType.Left, b.Id == a.CreatorUserId, JoinType.Left, c.Id == a.LastModifyUserId, JoinType.Left, a.Category == d.EnCode)).Select((a, b, c, d) => new
-            PrintDevListOutput
+            return await _printDevRepository.Context.Queryable<PrintDevEntity, UserEntity, UserEntity, DictionaryDataEntity>((a, b, c, d) => new JoinQueryInfos(JoinType.Left, b.Id == a.CreatorUserId, JoinType.Left, c.Id == a.LastModifyUserId, JoinType.Left, a.Category == d.EnCode))
+                .Select((a, b, c, d) => new PrintDevListOutput
             {
                 category = a.Category,
                 id = a.Id,
-                fullName=a.FullName,
+                fullName = a.FullName,
                 description = a.Description,
                 creatorTime = a.CreatorTime,
                 creatorUser = SqlFunc.MergeString(b.RealName, "/", b.Account),
@@ -381,8 +381,8 @@ namespace JNPF.System.Service.System
                 type = a.Type,
                 deleteMark = a.DeleteMark,
                 parentId = d.Id,
-                dictionaryTypeId= d.DictionaryTypeId
-            }).MergeTable().Where(x => x.deleteMark == null && x.dictionaryTypeId == "202931027482510597").OrderBy(x => x.sortCode).OrderBy(x => x.creatorTime, OrderByType.Desc).ToListAsync();
+                dictionaryTypeId = d.DictionaryTypeId
+            }).MergeTable().Where(x => x.deleteMark == null && x.dictionaryTypeId == "202931027482510597"&&x.enabledMark==1).OrderBy(x => x.sortCode).OrderBy(x => x.creatorTime, OrderByType.Desc).ToListAsync();
         }
 
         /// <summary>

@@ -1,6 +1,7 @@
 ﻿using JNPF.WorkFlow.Entitys;
 using JNPF.WorkFlow.Entitys.Dto.FlowBefore;
 using JNPF.WorkFlow.Entitys.Model;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace JNPF.WorkFlow.Interfaces.FlowTask
@@ -109,7 +110,7 @@ namespace JNPF.WorkFlow.Interfaces.FlowTask
         /// <param name="isDev">是否功能设计</param>
         /// <returns></returns>
         Task Submit(string id, string flowId, string processId, string flowTitle, int? flowUrgent, string billNo, object formData, int status, int? approvaUpType = 0, bool isSysTable = true, bool isDev = false);
-
+       
         /// <summary>
         /// 指派
         /// </summary>

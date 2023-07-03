@@ -13,12 +13,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Remove="Middlewares\**" />
-    <EmbeddedResource Remove="Middlewares\**" />
-    <None Remove="Middlewares\**" />
-  </ItemGroup>
-
-  <ItemGroup>
     <ProjectReference Include="..\..\..\Infrastructure\JNPF.Authentication.JwtBearer\JNPF.Authentication.JwtBearer.csproj" />
     <ProjectReference Include="..\..\Common\JNPF.Common.Core\JNPF.Common.Core.csproj" />
     <ProjectReference Include="..\JNPF.Message.Interfaces\JNPF.Message.Interfaces.csproj" />

@@ -112,8 +112,8 @@ namespace JNPF.System.Service.System
         /// </summary>
         /// <param name="category">菜单分类（参数有Web,App），默认显示所有分类</param>
         /// <returns></returns>
-        [HttpGet("Selector/{id}")]
-        public async Task<dynamic> GetSelector(string id, string category)
+        [HttpGet("Selector/{id}/{systemId}")]
+        public async Task<dynamic> GetSelector(string id,string systemId, string category)
         {
             var data = await GetList();
             if (!string.IsNullOrEmpty(category))
@@ -375,6 +375,17 @@ namespace JNPF.System.Service.System
                     UrlAddress= "model/3231",
                     PropertyJson = "{\"moduleId\":\"441123403869454405\",\"iconBackgroundColor\":\"\",\"isTree\":0}",
                     Id ="441123403869454405",
+                    ParentId = "-1"
+                });
+                menus.Add(new ModuleEntity
+                {
+                    Type = 3,
+                    FullName = "动态多表模块",
+                    EnCode = "dynamicDoubleModel",
+                    Icon = "icon-ym icon-ym-webDesign",
+                    UrlAddress = "model/多表",
+                    PropertyJson = "{\"moduleId\":\"443262321008050245\",\"iconBackgroundColor\":\"\",\"isTree\":0}",
+                    Id = "443262321008050245",
                     ParentId = "-1"
                 });
                 output = menus.Adapt<List<ModuleNodeOutput>>();

@@ -22,6 +22,7 @@ using JNPF.Common.Extension;
 using JNPF.Common.Helper;
 using JNPF.JsonSerialization;
 using JNPF.WorkFlow.Interfaces.FlowTask;
+using JNPF.Common.Filter;
 
 namespace JNPF.VisualDev
 {
@@ -56,18 +57,48 @@ namespace JNPF.VisualDev
         [HttpGet("")]
         public async Task<dynamic> GetList([FromQuery] VisualDevListQueryInput input)
         {
-            var data = await _visualDevRepository.Context.Queryable<VisualDevEntity, UserEntity, UserEntity>((a, b, c) => new JoinQueryInfos(JoinType.Left, b.Id == a.CreatorUserId, JoinType.Left, c.Id == a.LastModifyUserId))
-                .WhereIF(!string.IsNullOrEmpty(input.keyword), a => a.FullName.Contains(input.keyword) || a.EnCode.Contains(input.keyword))
-                .Where(a => a.DeleteMark == null && a.Type == input.type)
-                .OrderBy(a => a.Category).OrderBy(a => a.SortCode)
-                .Select((a, b, c) => new VisualDevListOutput { id = a.Id, fullName = a.FullName, enCode = a.EnCode, state = SqlFunc.ToInt32(a.State), type = SqlFunc.ToInt32(a.Type), tables = a.Tables, description = a.Description, category = a.Category, creatorTime = a.CreatorTime, creatorUser = SqlFunc.MergeString(b.RealName, "/", b.Account), lastModifyTime = a.LastModifyTime, lastModifyUser = SqlFunc.MergeString(c.RealName, SqlFunc.IIF(c.RealName == null, "", "/"), c.Account), deleteMark = a.DeleteMark, sortCode = a.SortCode, parentId = a.Category })
-                .ToListAsync();
-            var parentIds = data.Select(x => x.parentId).ToList().Distinct();
-            var parentData = await _visualDevRepository.Context.Queryable<DictionaryDataEntity>()
-                .Select(d => new { ParentId = "-1", FullName = d.FullName, Id = d.Id, DeleteMark = d.DeleteMark, state = d.EnabledMark }).MergeTable().Select<VisualDevListOutput>()
-                .Where(d => parentIds.Contains(d.id) && d.deleteMark == null && d.state.Equals("1")).ToListAsync();
-            var treeList = data.Union(parentData).ToList().ToTree("-1");
-            return new { list = treeList };
+            //var data = await _visualDevRepository.Context.Queryable<VisualDevEntity, UserEntity, UserEntity>((a, b, c) => new JoinQueryInfos(JoinType.Left, b.Id == a.CreatorUserId, JoinType.Left, c.Id == a.LastModifyUserId))
+            //    .WhereIF(!string.IsNullOrEmpty(input.keyword), a => a.FullName.Contains(input.keyword) || a.EnCode.Contains(input.keyword))
+            //    .Where(a => a.DeleteMark == null && a.Type == input.type)
+            //    .OrderBy(a => a.Category).OrderBy(a => a.SortCode)
+            //    .Select((a, b, c) => new VisualDevListOutput { id = a.Id, fullName = a.FullName, enCode = a.EnCode, state = SqlFunc.ToInt32(a.State), type = SqlFunc.ToInt32(a.Type), tables = a.Tables, description = a.Description, category = a.Category, creatorTime = a.CreatorTime, creatorUser = SqlFunc.MergeString(b.RealName, "/", b.Account), lastModifyTime = a.LastModifyTime, lastModifyUser = SqlFunc.MergeString(c.RealName, SqlFunc.IIF(c.RealName == null, "", "/"), c.Account), deleteMark = a.DeleteMark, sortCode = a.SortCode, parentId = a.Category })
+            //    .ToListAsync();
+            //var parentIds = data.Select(x => x.parentId).ToList().Distinct();
+            //var parentData = await _visualDevRepository.Context.Queryable<DictionaryDataEntity>()
+            //    .Select(d => new { ParentId = "-1", FullName = d.FullName, Id = d.Id, DeleteMark = d.DeleteMark, state = d.EnabledMark }).MergeTable().Select<VisualDevListOutput>()
+            //    .Where(d => parentIds.Contains(d.id) && d.deleteMark == null && d.state.Equals("1")).ToListAsync();
+            //var treeList = data.Union(parentData).ToList().ToTree("-1");
+            //return new { list = treeList };
+
+            var data = await _visualDevRepository.Context.Queryable<VisualDevEntity>()
+               .WhereIF(!string.IsNullOrEmpty(input.keyword), a => a.FullName.Contains(input.keyword) || a.EnCode.Contains(input.keyword))
+               .WhereIF(!string.IsNullOrEmpty(input.category), a => a.Category == input.category)
+               .Where(a => a.DeleteMark == null && a.Type == input.type)
+               .OrderBy(a => a.SortCode, OrderByType.Asc)
+               .OrderBy(a => a.CreatorTime, OrderByType.Desc)
+               .OrderBy(a => a.LastModifyTime, OrderByType.Desc)
+               .Select(a => new VisualDevListOutput
+               {
+                   id = a.Id,
+                   fullName = a.FullName,
+                   enCode = a.EnCode,
+                   state = a.State,
+                   type = a.Type,
+                   webType = a.WebType,
+                   tables = a.Tables,
+                   description = a.Description,
+                   creatorTime = a.CreatorTime,
+                   lastModifyTime = a.LastModifyTime,
+                   deleteMark = a.DeleteMark,
+                   sortCode = a.SortCode,
+                   parentId = a.Category,
+                   category = SqlFunc.Subqueryable<DictionaryDataEntity>().Where(d => d.Id == a.Category).Select(b => b.FullName),
+                   creatorUser = SqlFunc.Subqueryable<UserEntity>().Where(u => u.Id == a.CreatorUserId).Select(u => SqlFunc.MergeString(u.RealName, "/", u.Account)),
+                   lastModifyUser = SqlFunc.Subqueryable<UserEntity>().Where(u => u.Id == a.LastModifyUserId).Select(u => SqlFunc.MergeString(u.RealName, "/", u.Account))
+               })
+               .ToPagedListAsync(input.currentPage, input.pageSize);
+
+            return PageResult<VisualDevListOutput>.SqlSugarPageResult(data);
         }
 
         /// <summary>

@@ -95,6 +95,17 @@ namespace JNPF.System.Interfaces.System
         PageResult<Dictionary<string, object>> GetInterFaceData(DbLinkEntity link, string strSql, VisualDevModelListQueryInput pageInput, ColumnDesignModel columnDesign, string menuId);
 
         /// <summary>
+        /// 根据链接获取分页数据
+        /// </summary>
+        /// <param name="link">数据连接</param>
+        /// <param name="strSql">Sql语句</param>
+        /// <param name="pageInput">页数</param>
+        /// <param name="columnDesign">列配置</param>
+        /// <param name="dataPermissions">数据权限</param>
+        /// <returns></returns>
+        PageResult<Dictionary<string, object>> GetInterFaceData(DbLinkEntity link, string strSql, VisualDevModelListQueryInput pageInput, ColumnDesignModel columnDesign, List<IConditionalModel> dataPermissions, Dictionary<string, string> outColumnName = null);
+
+        /// <summary>
         /// 验证数据库连接
         /// </summary>
         /// <param name="link"></param>

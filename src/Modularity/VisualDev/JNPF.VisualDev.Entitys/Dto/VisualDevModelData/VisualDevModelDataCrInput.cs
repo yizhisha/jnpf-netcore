@@ -1,4 +1,6 @@
-﻿namespace JNPF.VisualDev.Entitys.Dto.VisualDevModelData
+﻿using System.Collections.Generic;
+
+namespace JNPF.VisualDev.Entitys.Dto.VisualDevModelData
 {
     /// <summary>
     /// 在线功能开发数据创建输入
@@ -14,5 +16,10 @@
         /// 1-保存
         /// </summary>
         public int status { get; set; }
+
+        /// <summary>
+        /// 候选人
+        /// </summary>
+        public Dictionary<string, List<string>> candidateList { get; set; }
     }
 }

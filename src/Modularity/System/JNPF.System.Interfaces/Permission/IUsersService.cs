@@ -1,6 +1,8 @@
 ﻿using JNPF.System.Entitys.Model.Permission.User;
 using JNPF.System.Entitys.Permission;
+using System;
 using System.Collections.Generic;
+using System.Linq.Expressions;
 using System.Threading.Tasks;
 
 namespace JNPF.System.Interfaces.Permission
@@ -101,5 +103,14 @@ namespace JNPF.System.Interfaces.Permission
         /// <param name="PositionIds"></param>
         /// <returns></returns>
         Task<List<PositionInfo>> GetPosition(string PositionIds);
+
+
+        /// <summary>
+        /// 表达式获取指定字段的用户列表
+        /// </summary>
+        /// <param name="expression">where 条件表达式</param>
+        /// <param name="select">select 选择字段表达式</param>
+        /// <returns></returns>
+        Task<List<UserEntity>> GetUserListByExp(Expression<Func<UserEntity, bool>> expression, Expression<Func<UserEntity, UserEntity>> select);
     }
 }

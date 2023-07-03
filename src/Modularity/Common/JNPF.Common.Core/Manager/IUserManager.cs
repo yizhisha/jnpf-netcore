@@ -1,5 +1,7 @@
 ﻿using JNPF.System.Entitys.Model.Permission.User;
 using JNPF.System.Entitys.Permission;
+using SqlSugar;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace JNPF.Common.Core.Manager
@@ -18,6 +20,12 @@ namespace JNPF.Common.Core.Manager
         /// 租户ID
         /// </summary>
         string TenantId { get; }
+
+
+        /// <summary>
+        /// 租户数据库名称
+        /// </summary>
+        string TenantDbName { get; }
 
         /// <summary>
         /// 用户账号
@@ -49,5 +57,13 @@ namespace JNPF.Common.Core.Manager
         /// </summary>
         /// <returns></returns>
         Task<UserInfo> GetUserInfo();
+
+        /// <summary>
+        /// 获取数据条件(在线开发专用)
+        /// </summary>
+        /// <typeparam name="T">实体</typeparam>
+        /// <param name="moduleId">模块ID</param>
+        /// <returns></returns>
+        List<IConditionalModel> GetCondition<T>(string primaryKey, string moduleId, bool isDataPermissions = true) where T : new();
     }
 }

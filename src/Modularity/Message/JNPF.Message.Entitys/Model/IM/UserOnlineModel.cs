@@ -7,6 +7,12 @@ namespace JNPF.Message.Entitys.Model.IM
     /// </summary>
     public class UserOnlineModel
     {
+
+        /// <summary>
+        /// token
+        /// </summary>
+        public string token { get; set; }
+
         /// <summary>
         /// 连接ID
         /// </summary>
@@ -46,5 +52,10 @@ namespace JNPF.Message.Entitys.Model.IM
         /// 租户id
         /// </summary>
         public string tenantId { get; set; }
+
+        /// <summary>
+        /// 是否移动端
+        /// </summary>
+        public bool isMobileDevice { get; set; }
     }
 }

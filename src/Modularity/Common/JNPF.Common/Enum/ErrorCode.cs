@@ -714,6 +714,29 @@ namespace JNPF.Common.Enum
         [ErrorCodeItemMetadata("已存在相同功能")]
         D1400,
 
+        /// <summary>
+        /// 错误的模板设计,表关系不能多对多
+        /// </summary>
+        [ErrorCodeItemMetadata("错误的模板设计,表关系不能多对多")]
+        D1401,
+
+        /// <summary>
+        /// 主表未设置主键字段
+        /// </summary>
+        [ErrorCodeItemMetadata("主表未设置主键字段")]
+        D1402,
+
+        /// <summary>
+        /// 复制模板 数据长度超过字段设定长度
+        /// </summary>
+        [ErrorCodeItemMetadata("已到达该模板复制上限，请复制源模板")]
+        D1403,
+
+        /// <summary>
+        /// 上传文件 控件 不填写文件大小
+        /// </summary>
+        [ErrorCodeItemMetadata("文件或者图片上传控件的 [文件大小] 必须输入")]
+        D1404,
         #endregion
 
         #region 数据建模 15
@@ -976,6 +999,51 @@ namespace JNPF.Common.Enum
         [ErrorCodeItemMetadata("新增分级管理失败")]
         D2300,
 
+        #endregion
+
+        #region 分组管理 24
+
+        /// <summary>
+        /// 新增分组失败
+        /// </summary>
+        [ErrorCodeItemMetadata("新增分组失败")]
+        D2400,
+
+        /// <summary>
+        /// 分组编码已存在
+        /// </summary>
+        [ErrorCodeItemMetadata("分组编码已存在")]
+        D2401,
+
+        /// <summary>
+        /// 分组名称已存在
+        /// </summary>
+        [ErrorCodeItemMetadata("分组名称已存在")]
+        D2402,
+
+        /// <summary>
+        /// 分组删除失败
+        /// </summary>
+        [ErrorCodeItemMetadata("分组删除失败")]
+        D2403,
+
+        /// <summary>
+        /// 分组更新失败
+        /// </summary>
+        [ErrorCodeItemMetadata("分组更新失败")]
+        D2404,
+
+        /// <summary>
+        /// 该分组不存在
+        /// </summary>
+        [ErrorCodeItemMetadata("该分组不存在")]
+        D2405,
+
+        /// <summary>
+        /// 该分组下有用户
+        /// </summary>
+        [ErrorCodeItemMetadata("该分组下有用户")]
+        D2406,
         #endregion
 
         #region 工作流 WF

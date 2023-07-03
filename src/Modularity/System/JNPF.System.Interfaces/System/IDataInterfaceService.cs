@@ -62,5 +62,13 @@ namespace JNPF.System.Interfaces.System
         /// <param name="id"></param>
         /// <returns></returns>
         Task<DataTable> GetData(string id);
+
+        /// <summary>
+        /// 替换参数默认值
+        /// </summary>
+        /// <param name="entity"></param>
+        /// <param name="dic"></param>
+        /// <returns></returns>
+        void ReplaceParameterValue(DataInterfaceEntity entity, Dictionary<string, string> dic);
     }
 }

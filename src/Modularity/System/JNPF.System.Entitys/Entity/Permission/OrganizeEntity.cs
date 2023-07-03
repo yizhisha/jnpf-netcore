@@ -22,6 +22,12 @@ namespace JNPF.System.Entitys.Permission
         public string ParentId { get; set; }
 
         /// <summary>
+        /// 父级组织 
+        /// </summary>
+        [SugarColumn(ColumnName = "F_ORGANIZEIDTREE")]
+        public string OrganizeIdTree { get; set; }
+
+        /// <summary>
         /// 机构分类【company-公司、department-部门】
         /// </summary>
         [SugarColumn(ColumnName = "F_CATEGORY")]

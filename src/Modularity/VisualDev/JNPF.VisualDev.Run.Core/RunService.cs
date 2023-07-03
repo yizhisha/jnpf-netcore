@@ -30,6 +30,10 @@ using SqlSugar;
 using Yitter.IdGenerator;
 using JNPF.ClayObject.Extensions;
 using Newtonsoft.Json;
+using SqlSugar.IOC;
+using JNPF.WorkFlow.Interfaces.FlowEngine;
+using JNPF.UnifyResult;
+using JNPF.RemoteRequest.Extensions;
 
 namespace JNPF.VisualDev.Core
 {
@@ -53,6 +57,7 @@ namespace JNPF.VisualDev.Core
         private readonly IDictionaryTypeService _dictionaryTypeService;
         private readonly IProvinceService _provinceService;
         private readonly IUserManager _userManager; // 用户管理
+        private readonly SqlSugarScope _db;
 
         /// <summary>
         /// 初始化一个<see cref="RunService"/>类型的新实例
@@ -74,6 +79,7 @@ namespace JNPF.VisualDev.Core
             _dictionaryTypeService = dictionaryTypeService;
             _provinceService = provinceService;
             _departmentService = departmentService;
+            _db = DbScoped.SugarScope;
         }
 
         #region Get
@@ -86,47 +92,281 @@ namespace JNPF.VisualDev.Core
         /// <returns></returns>
         public async Task<PageResult<Dictionary<string, object>>> GetListResult(VisualDevEntity entity, VisualDevModelListQueryInput input, string actionType = "List")
         {
+            #region Old
+            //var realList = new PageResult<Dictionary<string, object>>();
+            //realList.list = new List<Dictionary<string, object>>();
+            //var list = new List<VisualDevModelDataEntity>();
+
+            //FormDataModel formDataModel = TemplateKeywordsHelper.ReplaceKeywords(entity.FormData).Deserialize<FormDataModel>();
+            //List<FieldsModel> formData = formDataModel.fields;
+
+            ////先模板数据缓存 解开子表无限children
+            //formData = TemplateCacheDataConversion(formData);
+            //Dictionary<string, object> templateData = await GetVisualDevTemplateData(entity.Id, formData);
+
+            //formData = formDataModel.fields;
+            ////剔除布局控件
+            //formData = TemplateDataConversion(formData);
+
+            //var columnData = TemplateKeywordsHelper.ReplaceKeywords(entity.ColumnData).Deserialize<ColumnDesignModel>();
+
+            ////列表主键
+            //var primaryKey = "F_Id";
+
+            //if (!string.IsNullOrEmpty(entity.Tables) && !"[]".Equals(entity.Tables))
+            //{
+            //    List<TableModel> mapList = entity.Tables.ToString().Deserialize<List<TableModel>>();
+            //    string mainTable = mapList.Find(m => m.relationTable == "").table;
+            //    var tableList = new List<DbTableFieldModel>();
+            //    var link = await _dbLinkService.GetInfo(entity.DbLinkId);
+            //    tableList = _databaseService.GetFieldListByNoAsync(link, mainTable);
+            //    var mainPrimary = tableList.Find(t => t.primaryKey == 1);
+            //    primaryKey = mainPrimary?.field;
+            //    StringBuilder feilds = new StringBuilder();
+            //    tableList.ForEach(item =>
+            //    {
+            //        feilds.AppendFormat("{0},", item.field);
+            //    });
+            //    if (columnData.columnList.Count > 0)
+            //    {
+            //        feilds = new StringBuilder(feilds.ToString().TrimEnd(','));
+            //    }
+            //    StringBuilder sql = new StringBuilder();
+            //    sql.AppendFormat("select {0} from {1}", feilds, mainTable);
+            //    realList = _databaseService.GetInterFaceData(link, sql.ToString(), input, columnData, input.menuId);
+            //    list = GetTableDataList(realList.list.ToList(), primaryKey);
+            //}
+            //else
+            //{
+            //    list = await GetList(entity.Id);
+            //}
+
+            //input.sidx = string.IsNullOrEmpty(input.sidx) ? (columnData.defaultSidx == "" ? primaryKey : columnData.defaultSidx) : input.sidx;
+            ////关键字过滤
+            //if (list.Count > 0)
+            //{
+            //    //将查询的关键字json转成Dictionary
+            //    Dictionary<string, object> keywordJsonDic = string.IsNullOrEmpty(input.json) ? null : input.json.Deserialize<Dictionary<string, object>>();
+            //    //将关键字查询传输的id转换成名称
+            //    Dictionary<string, object> keyAndList = new Dictionary<string, object>();
+            //    if ((!string.IsNullOrEmpty(entity.Tables) && "[]".Equals(entity.Tables)) || string.IsNullOrEmpty(entity.Tables))
+            //    {
+            //        list = GetNoTableFilteringData(list, keywordJsonDic, formData);
+            //        keyAndList = await GetKeyData(formData, templateData, null, list, columnData, actionType, entity.WebType.ToInt(), primaryKey);
+            //        realList.list = GetQueryDataConversion(keyAndList["list"].Serialize().Deserialize<List<VisualDevModelDataEntity>>());
+            //        //关键字过滤
+            //        //realList.list = GetQueryFilteringData(keyAndList["keyJsonMap"].Serialize().Deserialize<Dictionary<string, object>>(), keyAndList["list"].Serialize().Deserialize<List<VisualDevModelDataEntity>>(), columnData);
+            //    }
+            //    else
+            //    {
+            //        keyAndList = await GetKeyData(formData, templateData, null, list, columnData, actionType, entity.WebType.ToInt(), primaryKey);
+            //        realList.list = GetQueryDataConversion(keyAndList["list"].Serialize().Deserialize<List<VisualDevModelDataEntity>>());
+            //    }
+            //    if (input.sort == "desc")
+            //    {
+            //        realList.list = realList.list.OrderByDescending(x =>
+            //        {
+            //            var dic = x as IDictionary<string, object>;
+            //            dic.GetOrAdd(input.sidx, () => null);
+            //            return dic[input.sidx];
+            //        }).ToList();
+            //    }
+            //    else
+            //    {
+            //        realList.list = realList.list.OrderBy(x =>
+            //        {
+            //            var dic = x as IDictionary<string, object>;
+            //            dic.GetOrAdd(input.sidx, () => null);
+            //            return dic[input.sidx];
+            //        }).ToList();
+            //    }
+            //}
+            //if (input.dataType == "0")
+            //{
+            //    if (!string.IsNullOrEmpty(entity.Tables) && !"[]".Equals(entity.Tables))
+            //    {
+            //    }
+            //    else
+            //    {
+            //        realList.pagination = new PageResult();
+            //        realList.pagination.total = realList.list.Count;
+            //        realList.pagination.pageSize = input.pageSize;
+            //        realList.pagination.pageIndex = input.currentPage;
+            //        realList.list = realList.list.Skip(input.pageSize * (input.currentPage - 1)).Take(input.pageSize).ToList();
+            //    }
+            //    //分组表格
+            //    if (columnData.type == 3)
+            //    {
+            //        var groupList = columnData.columnList.Where(p => p.prop == columnData.groupField).ToList();
+            //        var exceptList = columnData.columnList.Except(groupList).FirstOrDefault();
+            //        //分组数据
+            //        Dictionary<string, List<Dictionary<string, object>>> groupDic = new Dictionary<string, List<Dictionary<string, object>>>();
+            //        foreach (var item in realList.list)
+            //        {
+            //            if (item.ContainsKey(columnData.groupField))
+            //            {
+            //                var groupDicKey = item[columnData.groupField] is null ? "" : item[columnData.groupField].ToString();
+            //                if (!groupDic.ContainsKey(groupDicKey))
+            //                {
+            //                    groupDic.Add(groupDicKey, new List<Dictionary<string, object>>()); //初始化
+            //                }
+            //                item.Remove(columnData.groupField);
+            //                groupDic[groupDicKey].Add(item);
+            //            }
+            //            else
+            //            {
+            //                var groupDicKey = "null";
+            //                if (!groupDic.ContainsKey(groupDicKey))
+            //                {
+            //                    groupDic.Add(groupDicKey, new List<Dictionary<string, object>>()); //初始化
+            //                }
+            //                groupDic[groupDicKey].Add(item);
+            //            }
+
+            //        }
+            //        List<Dictionary<string, object>> realGroupDic = new List<Dictionary<string, object>>();
+            //        foreach (var item in groupDic)
+            //        {
+            //            Dictionary<string, object> dataMap = new Dictionary<string, object>();
+            //            dataMap.Add("top", true);
+            //            dataMap.Add("id", YitIdHelper.NextId().ToString());
+            //            dataMap.Add("children", DateConver(item.Value));
+            //            dataMap.Add(exceptList.prop, item.Key);
+            //            realGroupDic.Add(dataMap);
+            //        }
+            //        realList.list = realGroupDic;
+            //    }
+            //}
+            //else
+            //{
+            //    if (!string.IsNullOrEmpty(entity.Tables) && !"[]".Equals(entity.Tables))
+            //    {
+            //    }
+            //    else
+            //    {
+            //        realList.pagination = new PageResult();
+            //        realList.pagination.total = realList.list.Count;
+            //        realList.pagination.pageSize = input.pageSize;
+            //        realList.pagination.pageIndex = input.currentPage;
+            //        realList.list = realList.list.ToList();
+            //    }
+            //}
+            //realList.list = DateConver(realList.list);
+            //return realList;
+            #endregion
+
+            #region New
             var realList = new PageResult<Dictionary<string, object>>();
             realList.list = new List<Dictionary<string, object>>();
             var list = new List<VisualDevModelDataEntity>();
 
-            FormDataModel formDataModel = TemplateKeywordsHelper.ReplaceKeywords(entity.FormData).Deserialize<FormDataModel>();
-            List<FieldsModel> formData = formDataModel.fields;
+            var templateInfo = new TemplateParsingHelp(entity);//解析模板控件
+            input.json = templateInfo.TimeControlQueryConvert(input.json);//时间控件 查询 处理
 
-            //先模板数据缓存 解开子表无限children
-            formData = TemplateCacheDataConversion(formData);
-            Dictionary<string, object> templateData = await GetVisualDevTemplateData(entity.Id, formData);
-
-            formData = formDataModel.fields;
-            //剔除布局控件
-            formData = TemplateDataConversion(formData);
-
-            var columnData = TemplateKeywordsHelper.ReplaceKeywords(entity.ColumnData).Deserialize<ColumnDesignModel>();
+            //解开子表无限children，模板控件 可数据缓存
+            Dictionary<string, object> templateData = await GetVisualDevTemplateData(entity.Id, TemplateCacheDataConversion(templateInfo.AllFieldsModel));
 
             //列表主键
             var primaryKey = "F_Id";
 
-            if (!string.IsNullOrEmpty(entity.Tables) && !"[]".Equals(entity.Tables))
+            if (templateInfo.IsHasTable)
             {
-                List<TableModel> mapList = entity.Tables.ToString().Deserialize<List<TableModel>>();
-                string mainTable = mapList.Find(m => m.relationTable == "").table;
-                var tableList = new List<DbTableFieldModel>();
                 var link = await _dbLinkService.GetInfo(entity.DbLinkId);
-                tableList = _databaseService.GetFieldListByNoAsync(link, mainTable);
-                var mainPrimary = tableList.Find(t => t.primaryKey == 1);
-                primaryKey = mainPrimary?.field;
+                if (link == null) link = GetTenantDbLink();//当前数据库连接
+                var DbType = link?.DbType != null ? link.DbType : _db.CurrentConnectionConfig.DbType.ToString();//当前数据库类型
+                var tableList = _databaseService.GetFieldList(link, templateInfo.MainTableName);//获取主表所有列
+                var mainPrimary = tableList.Find(t => t.primaryKey == 1);//主表主键
+                if (mainPrimary.IsNullOrEmpty()) throw JNPFException.Oh(ErrorCode.D1402);//主表未设置主键
+                primaryKey = mainPrimary.field;
                 StringBuilder feilds = new StringBuilder();
-                tableList.ForEach(item =>
+                var sql = string.Empty;//查询sql
+
+                //联表查询 表字段名称 对应 前端字段名称 (应对oracle 查询字段长度不能超过30个)
+                var tableFieldKeyValue = new Dictionary<string, string>();
+
+                //是否存在副表
+                if (templateInfo.AuxiliaryTableFieldsModelList.Count < 1)//没有副表 只查询主表
                 {
-                    feilds.AppendFormat("{0},", item.field);
-                });
-                if (columnData.columnList.Count > 0)
-                {
-                    feilds = new StringBuilder(feilds.ToString().TrimEnd(','));
+                    feilds.AppendFormat("{0},", primaryKey);
+                    if (templateInfo.SingleFormData.Count > 0 || templateInfo.ColumnData.columnList.Count > 0)//只查询 要显示的列
+                    {
+                        templateInfo.ColumnData.columnList.ForEach(item =>
+                        {
+                            feilds.AppendFormat("{0},", item.prop);
+                        });
+                        feilds = new StringBuilder(feilds.ToString().TrimEnd(','));
+                    }
+                    else
+                    {
+                        tableList.ForEach(item =>
+                        {
+                            //主表列名
+                            if (templateInfo.MainTableFieldsModelList.Find(x => x.__vModel__ == item.field) != null) feilds.AppendFormat("{0},", item.field);
+                        });
+
+                        feilds = new StringBuilder(feilds.ToString().TrimEnd(','));
+                    }
+                    sql = string.Format("select {0} from {1}", feilds, templateInfo.MainTableName);
                 }
-                StringBuilder sql = new StringBuilder();
-                sql.AppendFormat("select {0} from {1}", feilds, mainTable);
-                realList = _databaseService.GetInterFaceData(link, sql.ToString(), input, columnData, input.menuId);
+                else
+                {
+                    #region 所有主、副表 字段名 和 处理查询、排序字段
+                    //所有主、副表 字段名
+                    var cFieldNameList = new List<string>();
+                    cFieldNameList.Add(templateInfo.MainTableName + "." + primaryKey);
+                    tableFieldKeyValue.Add(primaryKey.ToUpper(), primaryKey);
+                    var inputJson = input.json?.Deserialize<Dictionary<string, object>>();
+                    for (var i = 0; i < templateInfo.SingleFormData.Count; i++)
+                    {
+                        if (templateInfo.ColumnData.columnList.Any(x => x.prop == templateInfo.SingleFormData[i].__vModel__))//只显示要显示的列
+                        {
+                            var vmodel = templateInfo.SingleFormData[i].__vModel__.ReplaceRegex(@"(\w+)_jnpf_", "");//Field
+
+                            if (vmodel.IsNotEmptyOrNull())
+                            {
+                                cFieldNameList.Add(templateInfo.SingleFormData[i].__config__.tableName + "." + vmodel + " FIELD_" + i);//TableName.Field_0
+                                tableFieldKeyValue.Add("FIELD_" + i, templateInfo.SingleFormData[i].__vModel__);
+
+                                //查询字段替换
+                                if (inputJson != null && inputJson.Count > 0 && inputJson.ContainsKey(templateInfo.SingleFormData[i].__vModel__))
+                                    input.json = input.json.Replace(templateInfo.SingleFormData[i].__vModel__ + "\":", "FIELD_" + i + "\":");
+
+                                templateInfo.ColumnData.searchList.Where(x => x.__vModel__ == templateInfo.SingleFormData[i].__vModel__).ToList().ForEach(item =>
+                                {
+                                    item.__vModel__ = item.__vModel__.Replace(templateInfo.SingleFormData[i].__vModel__, "FIELD_" + i);
+                                });
+
+                                //排序字段替换
+                                if (templateInfo.ColumnData.defaultSidx.IsNotEmptyOrNull() && templateInfo.ColumnData.defaultSidx == vmodel)
+                                    templateInfo.ColumnData.defaultSidx = "FIELD_" + i;
+
+                                if (input.sidx.IsNotEmptyOrNull() && input.sidx == vmodel)
+                                    input.sidx = "FIELD_" + i;
+                            }
+                        }
+                    }
+                    feilds.Append(string.Join(",", cFieldNameList));
+                    #endregion
+
+                    #region 关联字段
+                    var relationKey = new List<string>();
+                    var auxiliaryFieldList = templateInfo.AuxiliaryTableFieldsModelList.Select(x => x.__config__.tableName).Distinct().ToList();
+                    auxiliaryFieldList.ForEach(tName =>
+                    {
+                        //var tableField = templateInfo.AllTable.Find(tf => tf.table == tName)?.tableField;
+                        //relationKey.Add(templateInfo.MainTableName + "." + primaryKey + "=" + tName + "." + tableField);
+                        var table = templateInfo.AllTable.Find(tf => tf.table == tName);
+                        relationKey.Add(table.relationTable + "." + table.relationField + "=" + table.table + "." + table.tableField);
+                    });
+                    var whereStr = string.Join(" and ", relationKey);
+                    #endregion
+
+                    sql = string.Format("select {0} from {1} where {2}", feilds, templateInfo.MainTableName + "," + string.Join(",", auxiliaryFieldList), whereStr);//多表， 联合查询
+                }
+
+                var pvalue = _userManager.GetCondition<Dictionary<string, object>>(primaryKey, input.menuId, templateInfo.ColumnData.useDataPermission);
+                realList = _databaseService.GetInterFaceData(link, sql, input, templateInfo.ColumnData, pvalue, tableFieldKeyValue);
+
                 list = GetTableDataList(realList.list.ToList(), primaryKey);
             }
             else
@@ -134,7 +374,7 @@ namespace JNPF.VisualDev.Core
                 list = await GetList(entity.Id);
             }
 
-            input.sidx = string.IsNullOrEmpty(input.sidx) ? (columnData.defaultSidx == "" ? primaryKey : columnData.defaultSidx) : input.sidx;
+            input.sidx = string.IsNullOrEmpty(input.sidx) ? (templateInfo.ColumnData.defaultSidx == "" ? primaryKey : templateInfo.ColumnData.defaultSidx) : input.sidx;
             //关键字过滤
             if (list.Count > 0)
             {
@@ -144,34 +384,37 @@ namespace JNPF.VisualDev.Core
                 Dictionary<string, object> keyAndList = new Dictionary<string, object>();
                 if ((!string.IsNullOrEmpty(entity.Tables) && "[]".Equals(entity.Tables)) || string.IsNullOrEmpty(entity.Tables))
                 {
-                    list = GetNoTableFilteringData(list, keywordJsonDic, formData);
-                    keyAndList = await GetKeyData(formData, templateData, null, list, columnData, actionType, entity.WebType.ToInt(), primaryKey);
+                    list = GetNoTableFilteringData(list, keywordJsonDic, templateInfo.FieldsModelList);
+                    keyAndList = await GetKeyData(templateInfo.FieldsModelList, templateData, null, list, templateInfo.ColumnData, actionType, entity.WebType.ToInt(), primaryKey);
                     realList.list = GetQueryDataConversion(keyAndList["list"].Serialize().Deserialize<List<VisualDevModelDataEntity>>());
                     //关键字过滤
                     //realList.list = GetQueryFilteringData(keyAndList["keyJsonMap"].Serialize().Deserialize<Dictionary<string, object>>(), keyAndList["list"].Serialize().Deserialize<List<VisualDevModelDataEntity>>(), columnData);
                 }
                 else
                 {
-                    keyAndList = await GetKeyData(formData, templateData, null, list, columnData, actionType, entity.WebType.ToInt(), primaryKey);
+                    keyAndList = await GetKeyData(templateInfo.FieldsModelList, templateData, null, list, templateInfo.ColumnData, actionType, entity.WebType.ToInt(), primaryKey);
                     realList.list = GetQueryDataConversion(keyAndList["list"].Serialize().Deserialize<List<VisualDevModelDataEntity>>());
                 }
-                if (input.sort == "desc")
+                if (!templateInfo.IsHasTable && input.sidx.IsNotEmptyOrNull())//如果是无表数据并且排序字段不为空，再进行数据排序
                 {
-                    realList.list = realList.list.OrderByDescending(x =>
+                    if (input.sort == "desc")
                     {
-                        var dic = x as IDictionary<string, object>;
-                        dic.GetOrAdd(input.sidx, () => null);
-                        return dic[input.sidx];
-                    }).ToList();
-                }
-                else
-                {
-                    realList.list = realList.list.OrderBy(x =>
+                        realList.list = realList.list.OrderByDescending(x =>
+                        {
+                            var dic = x as IDictionary<string, object>;
+                            dic.GetOrAdd(input.sidx, () => null);
+                            return dic[input.sidx];
+                        }).ToList();
+                    }
+                    else
                     {
-                        var dic = x as IDictionary<string, object>;
-                        dic.GetOrAdd(input.sidx, () => null);
-                        return dic[input.sidx];
-                    }).ToList();
+                        realList.list = realList.list.OrderBy(x =>
+                        {
+                            var dic = x as IDictionary<string, object>;
+                            dic.GetOrAdd(input.sidx, () => null);
+                            return dic[input.sidx];
+                        }).ToList();
+                    }
                 }
             }
             if (input.dataType == "0")
@@ -188,22 +431,22 @@ namespace JNPF.VisualDev.Core
                     realList.list = realList.list.Skip(input.pageSize * (input.currentPage - 1)).Take(input.pageSize).ToList();
                 }
                 //分组表格
-                if (columnData.type == 3)
+                if (templateInfo.ColumnData.type == 3)
                 {
-                    var groupList = columnData.columnList.Where(p => p.prop == columnData.groupField).ToList();
-                    var exceptList = columnData.columnList.Except(groupList).FirstOrDefault();
+                    var groupList = templateInfo.ColumnData.columnList.Where(p => p.prop == templateInfo.ColumnData.groupField).ToList();
+                    var exceptList = templateInfo.ColumnData.columnList.Except(groupList).FirstOrDefault();
                     //分组数据
                     Dictionary<string, List<Dictionary<string, object>>> groupDic = new Dictionary<string, List<Dictionary<string, object>>>();
                     foreach (var item in realList.list)
                     {
-                        if (item.ContainsKey(columnData.groupField))
+                        if (item.ContainsKey(templateInfo.ColumnData.groupField))
                         {
-                            var groupDicKey = item[columnData.groupField] is null ? "" : item[columnData.groupField].ToString();
+                            var groupDicKey = item[templateInfo.ColumnData.groupField] is null ? "" : item[templateInfo.ColumnData.groupField].ToString();
                             if (!groupDic.ContainsKey(groupDicKey))
                             {
                                 groupDic.Add(groupDicKey, new List<Dictionary<string, object>>()); //初始化
                             }
-                            item.Remove(columnData.groupField);
+                            item.Remove(templateInfo.ColumnData.groupField);
                             groupDic[groupDicKey].Add(item);
                         }
                         else
@@ -224,7 +467,8 @@ namespace JNPF.VisualDev.Core
                         dataMap.Add("top", true);
                         dataMap.Add("id", YitIdHelper.NextId().ToString());
                         dataMap.Add("children", DateConver(item.Value));
-                        dataMap.Add(exceptList.prop, item.Key);
+                        if (!exceptList.IsEmpty() && !string.IsNullOrWhiteSpace(exceptList.prop)) dataMap.Add(exceptList.prop, item.Key);
+                        else dataMap.Add(templateInfo.ColumnData.groupField, item.Key);
                         realGroupDic.Add(dataMap);
                     }
                     realList.list = realGroupDic;
@@ -246,6 +490,7 @@ namespace JNPF.VisualDev.Core
             }
             realList.list = DateConver(realList.list);
             return realList;
+            #endregion
         }
 
         /// <summary>
@@ -287,11 +532,23 @@ namespace JNPF.VisualDev.Core
         /// <returns></returns>
         public async Task<string> GetIsNoTableInfo(VisualDevEntity templateEntity, string data)
         {
+            #region Old
+            //var formData = TemplateKeywordsHelper.ReplaceKeywords(templateEntity.FormData).ToObject<FormDataModel>();
+            //var modelList = formData.fields;
+            ////获取Redis缓存模板数据
+            //var templateData = await GetVisualDevTemplateData(templateEntity.Id, modelList);
+            //data = await GetSystemComponentsData(modelList, templateData, data);
+            #endregion
+
+            #region New
             var formData = TemplateKeywordsHelper.ReplaceKeywords(templateEntity.FormData).ToObject<FormDataModel>();
             var modelList = formData.fields;
+            modelList = TemplateCacheDataConversion(modelList);
             //获取Redis缓存模板数据
             var templateData = await GetVisualDevTemplateData(templateEntity.Id, modelList);
             data = await GetSystemComponentsData(modelList, templateData, data);
+            #endregion
+
             return data;
         }
 
@@ -303,25 +560,216 @@ namespace JNPF.VisualDev.Core
         /// <returns></returns>
         public async Task<string> GetHaveTableInfo(string id, VisualDevEntity templateEntity)
         {
-            FormDataModel formData = TemplateKeywordsHelper.ReplaceKeywords(templateEntity.FormData).ToObject<FormDataModel>();
-            List<FieldsModel> modelList = formData.fields.ToList<FieldsModel>();
-            //剔除无限极
-            modelList = TemplateDataConversion(modelList);
-            List<TableModel> tableMapList = templateEntity.Tables.ToObject<List<TableModel>>();
-            StringBuilder mainfeild = new StringBuilder();
-            StringBuilder mainSql = new StringBuilder();
-            var mainTable = tableMapList.Find(m => m.relationTable == "");
-            var tableList = new List<DbTableFieldModel>();
+            #region Old
+            //FormDataModel formData = TemplateKeywordsHelper.ReplaceKeywords(templateEntity.FormData).ToObject<FormDataModel>();
+            //List<FieldsModel> modelList = formData.fields.ToList<FieldsModel>();
+            ////剔除无限极
+            //modelList = TemplateDataConversion(modelList);
+            //List<TableModel> tableMapList = templateEntity.Tables.ToObject<List<TableModel>>();
+            //StringBuilder mainfeild = new StringBuilder();
+            //StringBuilder mainSql = new StringBuilder();
+            //var mainTable = tableMapList.Find(m => m.relationTable == "");
+            //var tableList = new List<DbTableFieldModel>();
+            //var link = await _dbLinkService.GetInfo(templateEntity.DbLinkId);
+            //tableList = _databaseService.GetFieldListByNoAsync(link, mainTable.table);
+            //var mainPrimary = tableList.Find(t => t.primaryKey == 1);
+            //mainSql.AppendFormat("select * from {0} where {2}='{1}';", mainTable.table, id, mainPrimary.field);
+            //var mainData = _databaseService.GetInterFaceData(link, mainSql.ToString()).Serialize().Deserialize<List<Dictionary<string, object>>>();
+            //List<Dictionary<string, object>> mainMap = GetTableDataInfoByTimeStamp(mainData, modelList, "update");
+            ////记录全部主表数据
+            //Dictionary<string, object> dataMap = mainMap.FirstOrDefault();
+            //Dictionary<string, object> newDataMap = new Dictionary<string, object>();
+            //foreach (var model in modelList)
+            //{
+            //    if (!string.IsNullOrEmpty(model.__vModel__))
+            //    {
+            //        if ("table".Equals(model.__config__.jnpfKey))
+            //        {
+            //            StringBuilder feilds = new StringBuilder();
+            //            List<FieldsModel> childModelList = model.__config__.children;
+            //            foreach (var childModel in childModelList)
+            //            {
+            //                feilds.Append(childModel.__vModel__ + ",");
+            //            }
+            //            if (childModelList.Count > 0)
+            //            {
+            //                feilds = new StringBuilder(feilds.ToString().TrimEnd(','));
+            //            }
+            //            //子表字段
+            //            string relationFeild = "";
+            //            //主表字段
+            //            string relationMainFeild = "";
+            //            string relationMainFeildValue = "";
+            //            //查询子表数据
+            //            StringBuilder childSql = new StringBuilder();
+            //            childSql.Append("select " + feilds + " from " + model.__config__.tableName + " where 1=1 ");
+            //            foreach (var tableMap in tableMapList)
+            //            {
+            //                if (tableMap.table.Equals(model.__config__.tableName))
+            //                {
+            //                    relationFeild = tableMap.tableField;
+            //                    relationMainFeild = tableMap.relationField;
+            //                    if (dataMap.ContainsKey(relationMainFeild))
+            //                    {
+            //                        relationMainFeildValue = dataMap[relationMainFeild].ToString();
+            //                        childSql.Append(@" And " + relationFeild + "='" + relationMainFeildValue + "'");
+            //                    }
+            //                    var childData = _databaseService.GetInterFaceData(link, childSql.ToString()).Serialize().Deserialize<List<Dictionary<string, object>>>();
+            //                    var childTableData = GetTableDataInfoByTimeStamp(childData, model.__config__.children, "update");
+            //                    if (childTableData.Count > 0)
+            //                    {
+            //                        newDataMap[model.__vModel__] = childTableData;
+            //                    }
+            //                }
+            //            }
+            //        }
+            //        else
+            //        {
+            //            mainfeild.Append(model.__vModel__ + ",");
+            //        }
+            //    }
+            //}
+            //if (modelList.Count > 0)
+            //{
+            //    mainfeild = new StringBuilder(mainfeild.ToString().TrimEnd(','));
+            //}
+            //int dicCount = newDataMap.Keys.Count;
+            //string[] strKey = new string[dicCount];
+            //newDataMap.Keys.CopyTo(strKey, 0);
+            //for (int i = 0; i < strKey.Length; i++)
+            //{
+            //    var model = modelList.Where(m => m.__vModel__ == strKey[i]).FirstOrDefault();
+            //    if (model != null)
+            //    {
+            //        List<Dictionary<string, object>> tables = newDataMap[strKey[i]].ToObject<List<Dictionary<string, object>>>();
+            //        List<Dictionary<string, object>> newTables = new List<Dictionary<string, object>>();
+            //        foreach (var item in tables)
+            //        {
+            //            Dictionary<string, object> dic = new Dictionary<string, object>();
+            //            foreach (var value in item)
+            //            {
+            //                var child = model.__config__.children.Find(c => c.__vModel__ == value.Key);
+            //                if (child != null)
+            //                {
+            //                    dic.Add(value.Key, value.Value);
+            //                }
+            //            }
+            //            newTables.Add(dic);
+            //        }
+            //        if (newTables.Count > 0)
+            //        {
+            //            newDataMap[strKey[i]] = newTables;
+            //        }
+            //    }
+            //}
+            //if (dataMap != null)
+            //{
+            //    foreach (var entryMap in dataMap)
+            //    {
+            //        if (entryMap.Value != null)
+            //        {
+            //            var model = modelList.Where(m => m.__vModel__ == entryMap.Key.ToString()).FirstOrDefault();
+            //            if (model != null)
+            //            {
+            //                if (entryMap.Key.Equals(model.__vModel__))
+            //                {
+            //                    if (mainfeild.ToString().Contains(entryMap.Key))
+            //                    {
+            //                        newDataMap[entryMap.Key] = entryMap.Value;
+            //                    }
+            //                }
+            //            }
+            //        }
+            //    }
+            //}
+            //return await GetTableInfoBySystemComponentsData(templateEntity.Id, modelList, newDataMap.Serialize());
+            #endregion
+
+            #region New
+
+            var templateInfo = new TemplateParsingHelp(templateEntity);//解析模板控件
+            var sql = string.Empty;//联表查询sql
+            var feildList = new List<string>();//存放所有查询列名
+
             var link = await _dbLinkService.GetInfo(templateEntity.DbLinkId);
-            tableList = _databaseService.GetFieldListByNoAsync(link, mainTable.table);
-            var mainPrimary = tableList.Find(t => t.primaryKey == 1);
-            mainSql.AppendFormat("select * from {0} where {2}='{1}';", mainTable.table, id, mainPrimary.field);
-            var mainData = _databaseService.GetInterFaceData(link, mainSql.ToString()).Serialize().Deserialize<List<Dictionary<string, object>>>();
-            List<Dictionary<string, object>> mainMap = GetTableDataInfoByTimeStamp(mainData, modelList, "update");
-            //记录全部主表数据
+            if (link == null) link = GetTenantDbLink();//存储当前数据连接
+            var tableList = _databaseService.GetFieldList(link, templateInfo.MainTableName);//获取主表 所有字段名
+            var mainPrimary = tableList.Find(t => t.primaryKey == 1)?.field;//主表主键
+            if (mainPrimary.IsNullOrEmpty()) throw JNPFException.Oh(ErrorCode.D1402);//主表未设置主键
+
+            //联表查询 表字段 别名
+            var tableFieldKeyValue = new Dictionary<string, string>();
+            //是否存在副表
+            if (templateInfo.AuxiliaryTableFieldsModelList.Count<1)//没有副表,只查询主表
+            {
+                feildList.Add(mainPrimary);//主表主键
+                for (var i = 0; i < tableList.Count; i++)
+                {
+                    if (templateInfo.MainTableFieldsModelList.Any(x => x.__vModel__ == tableList[i].field))
+                        feildList.Add(tableList[i].field);//主表列名
+                }
+                sql = string.Format("select {0} from {1} where {2}='{3}'", string.Join(",", feildList), templateInfo.MainTableName, mainPrimary, id);
+            }
+            else
+            {
+                #region 所有主表、副表 字段名
+                feildList.Add(templateInfo.MainTableName + "." + mainPrimary);//主表主键
+                tableFieldKeyValue.Add(mainPrimary.ToUpper(), mainPrimary);
+                for (var i = 0; i < templateInfo.SingleFormData.Count; i++)
+                {
+                    var vmodel = templateInfo.SingleFormData[i].__vModel__.ReplaceRegex(@"(\w+)_jnpf_", "");//Field
+                    if (vmodel.IsNotEmptyOrNull())
+                    {
+                        feildList.Add(templateInfo.SingleFormData[i].__config__.tableName + "." + vmodel + " FIELD" + i);//TableName.Field_0
+                        tableFieldKeyValue.Add("FIELD" + i, templateInfo.SingleFormData[i].__vModel__);
+                    }
+                }
+                #endregion
+
+                #region 所有副表 关联字段
+                var ctNameList = templateInfo.AuxiliaryTableFieldsModelList.Select(x => x.__config__.tableName).Distinct().ToList();
+                var relationKey = new List<string>();
+                relationKey.Add(string.Format(" {0}.{1}='{2}' ", templateInfo.MainTableName, mainPrimary, id));//主表ID
+                ctNameList.ForEach(tName =>
+                {
+                    var tableField = templateInfo.AllTable.Find(tf => tf.table == tName)?.tableField;
+                    relationKey.Add(string.Format(" {0}.{1}={2}.{3} ", templateInfo.MainTableName, mainPrimary, tName, tableField));
+                });
+                var whereStr = string.Join(" and ", relationKey);
+                #endregion
+
+                sql=string.Format("select {0} from {1} where {2}", string.Join(",", feildList), templateInfo.MainTableName + "," + string.Join(",", ctNameList), whereStr);//多表， 联合查询
+            }
+
+            var Data = _databaseService.GetInterFaceData(link, sql.ToString()).Serialize().Deserialize<List<Dictionary<string, object>>>();
+            if (Data.Count < 1) return id;
+            var mainData = new List<Dictionary<string, object>>();
+            #region 查询别名转换
+            if (templateInfo.AuxiliaryTableFieldsModelList.Count > 0)
+            {
+                foreach (var dicItem in Data)
+                {
+                    var temp = new Dictionary<string, object>();
+                    foreach (var item in dicItem)
+                    {
+                        temp.Add(tableFieldKeyValue[item.Key.ToUpper()], item.Value);
+                    }
+                    mainData.Add(temp);
+                }
+            }
+            else
+            {
+                mainData = Data;
+            }
+            #endregion
+
+            List<Dictionary<string, object>> mainMap = GetTableDataInfoByTimeStamp(mainData, templateInfo.FieldsModelList, "detail");
+            //记录全部数据
             Dictionary<string, object> dataMap = mainMap.FirstOrDefault();
             Dictionary<string, object> newDataMap = new Dictionary<string, object>();
-            foreach (var model in modelList)
+
+            #region 处理子表数据
+            foreach (var model in templateInfo.ChildTableFieldsModelList)
             {
                 if (!string.IsNullOrEmpty(model.__vModel__))
                 {
@@ -331,7 +779,7 @@ namespace JNPF.VisualDev.Core
                         List<FieldsModel> childModelList = model.__config__.children;
                         foreach (var childModel in childModelList)
                         {
-                            feilds.Append(childModel.__vModel__ + ",");
+                            if (!string.IsNullOrEmpty(childModel.__vModel__)) feilds.Append(childModel.__vModel__ + ",");
                         }
                         if (childModelList.Count > 0)
                         {
@@ -345,7 +793,7 @@ namespace JNPF.VisualDev.Core
                         //查询子表数据
                         StringBuilder childSql = new StringBuilder();
                         childSql.Append("select " + feilds + " from " + model.__config__.tableName + " where 1=1 ");
-                        foreach (var tableMap in tableMapList)
+                        foreach (var tableMap in templateInfo.AllTable)
                         {
                             if (tableMap.table.Equals(model.__config__.tableName))
                             {
@@ -357,7 +805,69 @@ namespace JNPF.VisualDev.Core
                                     childSql.Append(@" And " + relationFeild + "='" + relationMainFeildValue + "'");
                                 }
                                 var childData = _databaseService.GetInterFaceData(link, childSql.ToString()).Serialize().Deserialize<List<Dictionary<string, object>>>();
-                                var childTableData = GetTableDataInfoByTimeStamp(childData, model.__config__.children, "update");
+                                var childTableData = GetTableDataInfoByTimeStamp(childData, model.__config__.children, "detail");
+
+                                #region 获取关联表单属性 和 弹窗选择属性
+                                var rFormList = model.__config__.children.Where(x => x.__config__.jnpfKey == "relationForm").ToList();
+                                foreach (var item in rFormList)
+                                {
+                                    foreach (var dataItem in childTableData)
+                                    {
+                                        if (!string.IsNullOrWhiteSpace(item.__vModel__) && dataItem.ContainsKey(item.__vModel__) && dataItem[item.__vModel__] != null)
+                                        {
+                                            //获取关联表单id
+                                            var relationValueId = dataItem[item.__vModel__].ToString();
+
+                                            //获取 关联表单 转换后的数据
+                                            var relationInfo = await _visualDevRepository.FirstOrDefaultAsync(x=>x.Id == item.modelId);
+                                            var relationValueStr = "";
+                                            if (relationInfo.Tables.IsNullOrWhiteSpace() || relationInfo.Tables.Equals("[]"))
+                                            {
+                                                var noTableData = await GetInfo(relationValueId);
+                                                relationValueStr = await GetIsNoTableInfo(relationInfo, noTableData.Data);
+                                            }
+                                            else
+                                                relationValueStr = await GetHaveTableInfo(relationValueId, relationInfo);
+
+                                            var relationValue = relationValueStr.ToObject<Dictionary<string, object>>();
+
+                                            //添加到 子表 列
+                                            model.__config__.children.Where(x => x.relationField.ReplaceRegex(@"_jnpfTable_(\w+)", "") == item.__vModel__).ToList().ForEach(citem =>
+                                            {
+                                                citem.__vModel__ = item.__vModel__ + "_" + citem.showField;
+                                                dataItem.Add(item.__vModel__ + "_" + citem.showField, relationValue[citem.showField]);
+                                            });
+                                        }
+                                    }
+                                }
+
+                                if (model.__config__.children.Where(x => x.__config__.jnpfKey == "popupAttr").Any())
+                                {
+                                    var pFormList = model.__config__.children.Where(x => x.__config__.jnpfKey == "popupSelect").ToList();
+                                    foreach (var item in pFormList)
+                                    {
+                                        var pDataList = await GetPopupSelectDataList(item.interfaceId, model);//获取接口数据列表
+                                        foreach (var dataItem in childTableData)
+                                        {
+                                            if (!string.IsNullOrWhiteSpace(item.__vModel__) && dataItem.ContainsKey(item.__vModel__) && dataItem[item.__vModel__] != null)
+                                            {
+                                                //获取关联表单id
+                                                var relationValueId = dataItem[item.__vModel__].ToString();
+
+                                                //添加到 子表 列
+                                                model.__config__.children.Where(x => x.relationField.ReplaceRegex(@"_jnpfTable_(\w+)", "") == item.__vModel__).ToList().ForEach(citem =>
+                                                {
+                                                    var id = dataItem[item.__vModel__].ToString();
+                                                    citem.__vModel__ = item.__vModel__ + "_" + citem.showField;
+                                                    var value = pDataList.Where(x => x.Values.Contains(id)).FirstOrDefault();
+                                                    if (value.Keys.IsNotEmptyOrNull()) dataItem.Add(item.__vModel__ + "_" + citem.showField, value[citem.showField]);
+                                                });
+                                            }
+                                        }
+                                    }
+                                }
+                                #endregion
+
                                 if (childTableData.Count > 0)
                                 {
                                     newDataMap[model.__vModel__] = childTableData;
@@ -365,22 +875,16 @@ namespace JNPF.VisualDev.Core
                             }
                         }
                     }
-                    else
-                    {
-                        mainfeild.Append(model.__vModel__ + ",");
-                    }
                 }
             }
-            if (modelList.Count > 0)
-            {
-                mainfeild = new StringBuilder(mainfeild.ToString().TrimEnd(','));
-            }
+            #endregion
+
             int dicCount = newDataMap.Keys.Count;
             string[] strKey = new string[dicCount];
             newDataMap.Keys.CopyTo(strKey, 0);
             for (int i = 0; i < strKey.Length; i++)
             {
-                var model = modelList.Where(m => m.__vModel__ == strKey[i]).FirstOrDefault();
+                var model = templateInfo.FieldsModelList.Where(m => m.__vModel__ == strKey[i]).FirstOrDefault();
                 if (model != null)
                 {
                     List<Dictionary<string, object>> tables = newDataMap[strKey[i]].ToObject<List<Dictionary<string, object>>>();
@@ -404,27 +908,29 @@ namespace JNPF.VisualDev.Core
                     }
                 }
             }
-            if(dataMap != null)
+
+            foreach (var entryMap in dataMap)
             {
-                foreach (var entryMap in dataMap)
+                if (entryMap.Value != null)
                 {
-                    if (entryMap.Value != null)
+                    var model = templateInfo.FieldsModelList.Where(m => m.__vModel__ == entryMap.Key.ToString()).FirstOrDefault();
+                    if (model != null)
                     {
-                        var model = modelList.Where(m => m.__vModel__ == entryMap.Key.ToString()).FirstOrDefault();
-                        if (model != null)
+                        if (entryMap.Key.Equals(model.__vModel__))
                         {
-                            if (entryMap.Key.Equals(model.__vModel__))
-                            {
-                                if (mainfeild.ToString().Contains(entryMap.Key))
-                                {
-                                    newDataMap[entryMap.Key] = entryMap.Value;
-                                }
-                            }
+                            newDataMap[entryMap.Key] = entryMap.Value;
                         }
                     }
                 }
             }
-            return await GetTableInfoBySystemComponentsData(templateEntity.Id, modelList, newDataMap.Serialize());
+
+            //处理 条形码 、 二维码 控件
+            GetBARAndQR(templateInfo.FieldsModelList, newDataMap, dataMap);
+
+            return await GetTableInfoBySystemComponentsData(templateEntity.Id, templateInfo.FieldsModelList, newDataMap.Serialize());
+            #endregion
+
+
         }
 
         /// <summary>
@@ -738,32 +1244,112 @@ namespace JNPF.VisualDev.Core
         /// <returns></returns>
         public async Task Create(VisualDevEntity templateEntity, VisualDevModelDataCrInput dataInput)
         {
+            #region OLD
+            //if (!string.IsNullOrEmpty(templateEntity.Tables) && !"[]".Equals(templateEntity.Tables))
+            //{
+            //    var mainId = YitIdHelper.NextId().ToString();
+            //    var link = await _dbLinkService.GetInfo(templateEntity.DbLinkId);
+            //    var haveTableSql = await CreateHaveTableSql(templateEntity, dataInput, mainId);
+
+            //    try
+            //    {
+            //        //开启事务
+            //        _visualDevModelDataRepository.Context.BeginTran();
+
+            //        //新增功能数据
+            //        await _databaseService.ExecuteSql(link, haveTableSql);
+
+            //        if (templateEntity.WebType == 3 && dataInput.status == 0)
+            //        {
+            //            var _flowTaskService = App.GetService<IFlowTaskService>();
+            //            await _flowTaskService.Submit(null, templateEntity.FlowId, mainId, null, 1, null, dataInput.data.Deserialize<JObject>(), 0, 0, false, true);
+            //        }
+
+            //        //关闭事务
+            //        _visualDevModelDataRepository.Context.CommitTran();
+            //    }
+            //    catch (Exception)
+            //    {
+            //        _visualDevModelDataRepository.Context.RollbackTran();
+            //        throw;
+            //    }
+            //}
+            //else
+            //{
+            //    var allDataMap = dataInput.data.Deserialize<Dictionary<string, object>>();
+            //    var formData = TemplateKeywordsHelper.ReplaceKeywords(templateEntity.FormData).Deserialize<FormDataModel>();
+            //    var fieldsModelList = formData.fields;
+            //    //剔除布局控件
+            //    fieldsModelList = TemplateDataConversion(fieldsModelList);
+            //    // 生成系统自动生成字段
+            //    allDataMap = await GenerateFeilds(fieldsModelList, allDataMap, true);
+
+            //    VisualDevModelDataEntity entity = new VisualDevModelDataEntity();
+            //    entity.Data = allDataMap.Serialize();
+            //    entity.VisualDevId = templateEntity.Id;
+            //    try
+            //    {
+            //        //开启事务
+            //        _visualDevModelDataRepository.Context.BeginTran();
+
+            //        //新增功能数据
+            //        var visualDevModelData = await _visualDevModelDataRepository.Context.Insertable(entity).CallEntityMethod(m => m.Creator()).ExecuteReturnEntityAsync();
+
+            //        if (templateEntity.WebType == 3 && dataInput.status == 0)
+            //        {
+            //            var _flowTaskService = App.GetService<IFlowTaskService>();
+            //            await _flowTaskService.Submit(null, templateEntity.FlowId, visualDevModelData.Id, null, 1, null, dataInput.data.Deserialize<JObject>(), 0, 0, false, true);
+            //        }
+
+            //        //关闭事务
+            //        _visualDevModelDataRepository.Context.CommitTran();
+            //    }
+            //    catch (Exception)
+            //    {
+            //        _visualDevModelDataRepository.Context.RollbackTran();
+            //        throw;
+            //    }
+            //}
+
+            #endregion
+
+            #region New
             if (!string.IsNullOrEmpty(templateEntity.Tables) && !"[]".Equals(templateEntity.Tables))
             {
                 var mainId = YitIdHelper.NextId().ToString();
                 var link = await _dbLinkService.GetInfo(templateEntity.DbLinkId);
-                var haveTableSql = await CreateHaveTableSql(templateEntity, dataInput, mainId);
+                if (link == null)
+                    link = GetTenantDbLink();
+                var haveTableSql = await CreateHaveTableSqlToList(templateEntity, dataInput, mainId);
 
                 try
                 {
                     //开启事务
-                    _visualDevModelDataRepository.Context.BeginTran();
+                    _db.BeginTran();
 
                     //新增功能数据
-                    await _databaseService.ExecuteSql(link, haveTableSql);
+                    foreach (var item in haveTableSql)
+                    {
+                        await _databaseService.ExecuteSql(link, item);
+                    }
 
                     if (templateEntity.WebType == 3 && dataInput.status == 0)
                     {
                         var _flowTaskService = App.GetService<IFlowTaskService>();
+                        var _flowEngineService = App.GetService<IFlowEngineService>();
+                        var FlowTitle = _userManager.User.RealName + "的" + templateEntity.FullName;//流程标题
+                        var IsSysTable = false;//流程是否系统表单
+                        var eModel = await _flowEngineService.GetInfo(templateEntity.FlowId);
+                        if (eModel?.FormType == 1) IsSysTable = true;
                         await _flowTaskService.Submit(null, templateEntity.FlowId, mainId, null, 1, null, dataInput.data.Deserialize<JObject>(), 0, 0, false, true);
                     }
 
                     //关闭事务
-                    _visualDevModelDataRepository.Context.CommitTran();
+                    _db.CommitTran();
                 }
                 catch (Exception)
                 {
-                    _visualDevModelDataRepository.Context.RollbackTran();
+                    _db.RollbackTran();
                     throw;
                 }
             }
@@ -783,7 +1369,7 @@ namespace JNPF.VisualDev.Core
                 try
                 {
                     //开启事务
-                    _visualDevModelDataRepository.Context.BeginTran();
+                    _db.BeginTran();
 
                     //新增功能数据
                     var visualDevModelData = await _visualDevModelDataRepository.Context.Insertable(entity).CallEntityMethod(m => m.Creator()).ExecuteReturnEntityAsync();
@@ -791,18 +1377,25 @@ namespace JNPF.VisualDev.Core
                     if (templateEntity.WebType == 3 && dataInput.status == 0)
                     {
                         var _flowTaskService = App.GetService<IFlowTaskService>();
+                        var _flowEngineService = App.GetService<IFlowEngineService>();
+                        var FlowTitle = _userManager.User.RealName + "的" + templateEntity.FullName;//流程标题
+                        var IsSysTable = false;//流程是否系统表单
+                        var eModel = await _flowEngineService.GetInfo(templateEntity.FlowId);
+                        if (eModel?.FormType == 1) IsSysTable = true;
                         await _flowTaskService.Submit(null, templateEntity.FlowId, visualDevModelData.Id, null, 1, null, dataInput.data.Deserialize<JObject>(), 0, 0, false, true);
                     }
 
                     //关闭事务
-                    _visualDevModelDataRepository.Context.CommitTran();
+                    _db.CommitTran();
                 }
                 catch (Exception)
                 {
-                    _visualDevModelDataRepository.Context.RollbackTran();
+                    _db.RollbackTran();
                     throw;
                 }
             }
+            #endregion
+
         }
 
         /// <summary>
@@ -915,6 +1508,218 @@ namespace JNPF.VisualDev.Core
         }
 
         /// <summary>
+        /// 创建有表SQL
+        /// </summary>
+        /// <param name="templateEntity"></param>
+        /// <param name="dataInput"></param>
+        /// <param name="mainId"></param>
+        /// <returns></returns>
+        public async Task<List<string>> CreateHaveTableSqlToList(VisualDevEntity templateEntity, VisualDevModelDataCrInput dataInput, string mainId)
+        {
+            var allDataMap = dataInput.data.Deserialize<Dictionary<string, object>>();
+            var formData = TemplateKeywordsHelper.ReplaceKeywords(templateEntity.FormData).Deserialize<FormDataModel>();
+            var fieldsModelList = formData.fields;
+            //剔除布局控件
+            fieldsModelList = TemplateDataConversion(fieldsModelList);
+            // 生成系统自动生成字段
+            allDataMap = await GenerateFeilds(fieldsModelList, allDataMap, true);
+
+            #region 验证模板
+            if (fieldsModelList.Count(x => x.__config__.jnpfKey == "table") > 0)
+            {
+                var tlist = fieldsModelList.Where(x => x.__config__.jnpfKey == "table").ToList();//设计子表集合
+                var flist = fieldsModelList.Where(x => x.__vModel__.Contains("_jnpf_")).ToList();//单控件副表集合
+
+                //处理旧控件 部分没有 tableName
+                tlist.Where(x => string.IsNullOrWhiteSpace(x.__config__.tableName)).ToList().ForEach(item =>
+                {
+                    if (item.__vModel__.Contains("_jnpf_")) item.__config__.tableName = item.__vModel__.ReplaceRegex(@"_jnpf_(\w+)", "").Replace("jnpf_", "");//副表
+                });
+                flist.Where(x => string.IsNullOrWhiteSpace(x.__config__.tableName)).ToList().ForEach(item =>
+                {
+                    if (item.__vModel__.Contains("_jnpf_")) item.__config__.tableName = item.__vModel__.ReplaceRegex(@"_jnpf_(\w+)", "").Replace("jnpf_", "");//副表
+                });
+
+                tlist.ForEach(item =>
+                {
+                    var tc = flist.Find(x => x.__vModel__.Contains(item.__config__.tableName + "_jnpf_"));
+
+                    if (tc != null) throw JNPFException.Oh(ErrorCode.D1401);
+                });
+            }
+
+            #endregion
+
+            //实例化模板信息
+            var tableMapList = templateEntity.Tables.Deserialize<List<TableModel>>();
+            //获取主表
+            var mainTable = tableMapList.Find(t => t.relationTable == "");
+            var tableList = new List<DbTableFieldModel>();
+            var link = await _dbLinkService.GetInfo(templateEntity.DbLinkId);
+            if (link == null)
+                link = GetTenantDbLink();
+            var DbType = link?.DbType != null ? link.DbType : _db.CurrentConnectionConfig.DbType.ToString();
+
+            tableList = _databaseService.GetFieldList(link, mainTable.table);
+
+            //辅助表数据名
+            var auxiliaryTableDataKey = fieldsModelList.Where(x => x.__vModel__.Contains("_jnpf_")).Select(x => x.__vModel__).ToList();
+
+            //先记录子表数据
+            var childTableDataKey = allDataMap.Where(d => d.Key.Contains("tableField")).Select(d => d.Key).ToList();
+            //记录主表数据
+            var mainPrimary = tableList.Find(t => t.primaryKey == 1);
+            //记录主表数据
+            var mainTableDataKey = allDataMap.Keys.Except(childTableDataKey).Except(auxiliaryTableDataKey).ToList();
+            //主表字段集合
+            StringBuilder mainFelid = new StringBuilder();
+            List<string> mainFelidList = new List<string>();
+            //主表查询语句
+            List<string> mainSql = new List<string>();
+            StringBuilder mainColumn = new StringBuilder();
+            var mainValues = new List<string>();
+
+            //拼接主表查询语句
+            var mainFields = mainTable.fields;
+            foreach (var item in mainTableDataKey)
+            {
+                var mainField = mainFields.Where(f => f.Field == item).FirstOrDefault();
+                if (mainField != null)
+                {
+                    var itemData = allDataMap[item];
+                    if (itemData != null && !string.IsNullOrEmpty(itemData.ToString()) && itemData.ToString() != "[]")
+                    {
+                        //Column部分
+                        mainColumn.AppendFormat("{0},", item);
+                        //Values部分
+                        mainValues.Add(InsertValueHandle(DbType, tableList, item, itemData, fieldsModelList));
+                    }
+                }
+            }
+            //去除多余的,
+            if (mainTableDataKey.Count > 0)
+            {
+                mainSql.Add(string.Format(
+                    "insert into {0} ({3}{1}) values('{4}'{2});",
+                    mainTable.table,
+                    (mainColumn.Length > 0 ? "," : "") + mainColumn.ToString().Trim(','),
+                    (mainValues.Count > 0 ? "," : "") + string.Join(",", mainValues),
+                    mainPrimary.field,
+                    mainId));
+            }
+            else
+            {
+                mainSql.Add(string.Format("insert into {0} ({1}) values('{2}');", mainTable.table, mainPrimary.field, mainId));
+            }
+
+            #region 子表 单控件 集合
+            if (auxiliaryTableDataKey.Count > 0)
+            {
+                var cTableList = fieldsModelList.Where(x => x.__vModel__.Contains("_jnpf_")).Select(x => x.__config__.tableName).Distinct().ToList();//获取所有子表
+
+                cTableList.ForEach(tbname => {
+                    var tableAllField = _databaseService.GetFieldList(link, tbname);//数据库里获取表的所有字段
+
+                    var tableFieldList = new List<string>();
+
+                    /////剔除空值控件
+                    auxiliaryTableDataKey.Where(x => x.Contains("jnpf_" + tbname + "_jnpf_")).ToList().ForEach(item =>
+                    {
+                        var itemData = allDataMap.Where(x => x.Key == item).Count() > 0 ? allDataMap[item] : null;
+                        if (itemData != null && itemData.ToString() != "") tableFieldList.Add(item);
+                    });
+
+                    var fieldList = string.Join(",", tableFieldList.Select(x => x.ReplaceRegex(@"(\w+)_jnpf_", "")).ToList());//插入的字段名
+
+                    var valueList = new List<string>();//对应的插入值
+
+                    tableFieldList.ForEach(item => {
+                        //前端未填写数据的字段，默认会找不到字段名，需要验证
+                        var itemData = allDataMap.Where(x => x.Key == item).Count() > 0 ? allDataMap[item] : null;
+                        if (itemData != null)
+                            valueList.Add(InsertValueHandle(DbType, tableList, item, itemData, fieldsModelList));//Values部分
+                    });
+
+                    if (fieldList.Length > 1)//没有插入数据，只插入主键和外键数据
+                    {
+                        mainSql.Add(string.Format("insert into {0}({1},{2},{3}) values('{4}','{5}',{6});",
+                            tbname,
+                            _databaseService.GetFieldList(link, tbname)?.Find(x => x.primaryKey == 1).field,//主键字段名,
+                            tableMapList.Find(t => t.table == tbname).tableField,//外键字段名,
+                            fieldList,
+                            YitIdHelper.NextId().ToString(),
+                            mainId,
+                            string.Join(",", valueList)));
+                    }
+                    else
+                    {
+                        mainSql.Add(string.Format("insert into {0}({1},{2}) values('{3}','{4}');",
+                            tbname,
+                            _databaseService.GetFieldList(link, tbname)?.Find(x => x.primaryKey == 1).field,//主键字段名,
+                            tableMapList.Find(t => t.table == tbname).tableField,//外键字段名,
+                            YitIdHelper.NextId().ToString(),
+                            mainId));
+                    }
+                });
+            }
+
+            #endregion
+
+            //拼接子表sql
+            foreach (var item in childTableDataKey)
+            {
+                //查找到该控件数据
+                var objectData = allDataMap[item];
+                var model = objectData.Serialize().Deserialize<List<Dictionary<string, object>>>();
+                if (model != null && model.Count > 0)
+                {
+                    //利用key去找模板
+                    var fieldsModel = fieldsModelList.Find(f => f.__vModel__ == item);
+                    var fieldsConfig = fieldsModel.__config__;
+                    model = GetTableDataListByDic(model, fieldsConfig.children);
+                    StringBuilder childColumn = new StringBuilder();
+                    var childValues = new List<string>();
+                    var childTable = tableMapList.Find(t => t.table == fieldsModel.__config__.tableName);
+                    tableList = new List<DbTableFieldModel>();
+                    tableList = _databaseService.GetFieldList(link, childTable.table);
+                    var childPrimary = tableList.Find(t => t.primaryKey == 1);
+                    foreach (var data in model)
+                    {
+                        if (data.Count > 0)
+                        {
+                            foreach (KeyValuePair<string, object> child in data)
+                            {
+                                if (child.Value != null && child.Value.ToString() != "[]" && child.Value.ToString() != "")
+                                {
+                                    //Column部分
+                                    childColumn.AppendFormat("{0},", child.Key);
+                                    //Values部分
+                                    childValues.Add(InsertValueHandle(DbType, tableList, child.Key, child.Value, fieldsConfig.children));
+                                }
+                            }
+                            if (!string.IsNullOrEmpty(childColumn.ToString()))
+                            {
+                                mainSql.Add(string.Format(
+                                    "insert into {0}({6},{4},{1}) values('{3}','{5}',{2});",
+                                    fieldsModel.__config__.tableName,
+                                    childColumn.ToString().Trim(','),
+                                    string.Join(",", childValues),
+                                    YitIdHelper.NextId().ToString(),
+                                    childTable.tableField,
+                                    mainId,
+                                    childPrimary.field));
+                            }
+                            childColumn = new StringBuilder();
+                            childValues = new List<string>();
+                        }
+                    }
+                }
+            }
+
+            return mainSql;
+        }
+
+        /// <summary>
         /// 修改
         /// </summary>
         /// <param name="id">修改ID</param>
@@ -923,24 +1728,117 @@ namespace JNPF.VisualDev.Core
         /// <returns></returns>
         public async Task Update(string id, VisualDevEntity templateEntity, VisualDevModelDataUpInput visualdevModelDataUpForm)
         {
+
+            #region OLD
+            //if (!string.IsNullOrEmpty(templateEntity.Tables) && !"[]".Equals(templateEntity.Tables))
+            //{
+            //    var link = await _dbLinkService.GetInfo(templateEntity.DbLinkId);
+            //    var haveTableSql = await UpdateHaveTableSql(templateEntity, visualdevModelDataUpForm, id);
+
+            //    try
+            //    {
+            //        //开启事务
+            //        _visualDevModelDataRepository.Context.BeginTran();
+
+            //        //修改功能数据
+            //        await _databaseService.ExecuteSql(link, haveTableSql);
+
+            //        if (templateEntity.WebType == 3 && visualdevModelDataUpForm.status == 0)
+            //        {
+            //            var _flowTaskRepository = App.GetService<IFlowTaskRepository>();
+            //            var _flowTaskService = App.GetService<IFlowTaskService>();
+            //            var taskEntity = await _flowTaskRepository.GetTaskInfo(id);
+            //            if (taskEntity == null)
+            //                await _flowTaskService.Submit(null, templateEntity.FlowId, id, null, 1, null, visualdevModelDataUpForm.data.Deserialize<JObject>(), 0, 0, false, true);
+            //            else
+            //                await _flowTaskService.Submit(id, templateEntity.FlowId, id, null, 1, null, visualdevModelDataUpForm.data.Deserialize<JObject>(), 0, 0, false, true);
+            //        }
+
+            //        //关闭事务
+            //        _visualDevModelDataRepository.Context.CommitTran();
+            //    }
+            //    catch (Exception)
+            //    {
+            //        _visualDevModelDataRepository.Context.RollbackTran();
+            //        throw;
+            //    }
+            //}
+            //else
+            //{
+            //    Dictionary<string, object> allDataMap = visualdevModelDataUpForm.data.ToObject<Dictionary<string, object>>();
+            //    FormDataModel formData = TemplateKeywordsHelper.ReplaceKeywords(templateEntity.FormData).ToObject<FormDataModel>();
+            //    List<FieldsModel> fieldsModelList = formData.fields.ToObject<List<FieldsModel>>();
+            //    fieldsModelList = TemplateDataConversion(fieldsModelList);
+            //    //生成系统自动生成字段
+            //    allDataMap = await GenerateFeilds(fieldsModelList, allDataMap, false);
+
+            //    VisualDevModelDataEntity entity = new VisualDevModelDataEntity();
+            //    entity.Data = allDataMap.Serialize();
+            //    entity.VisualDevId = templateEntity.Id;
+            //    entity.Id = id;
+            //    try
+            //    {
+            //        //开启事务
+            //        _visualDevModelDataRepository.Context.BeginTran();
+
+            //        //修改功能数据
+            //        await _visualDevModelDataRepository.Context.Updateable(entity).CallEntityMethod(m => m.LastModify()).ExecuteCommandAsync();
+
+            //        if (templateEntity.WebType == 3 && visualdevModelDataUpForm.status == 0)
+            //        {
+            //            var _flowTaskRepository = App.GetService<IFlowTaskRepository>();
+            //            var _flowTaskService = App.GetService<IFlowTaskService>();
+            //            var taskEntity = await _flowTaskRepository.GetTaskInfo(id);
+            //            if (taskEntity == null)
+            //                await _flowTaskService.Submit(null, templateEntity.FlowId, id, null, 1, null, visualdevModelDataUpForm.data.Deserialize<JObject>(), 0, 0, true);
+            //            else
+            //                await _flowTaskService.Submit(id, templateEntity.FlowId, id, null, 1, null, visualdevModelDataUpForm.data.Deserialize<JObject>(), 0, 0, true);
+            //        }
+
+            //        //关闭事务
+            //        _visualDevModelDataRepository.Context.CommitTran();
+            //    }
+            //    catch (Exception)
+            //    {
+            //        _visualDevModelDataRepository.Context.RollbackTran();
+            //        throw;
+            //    }
+            //}
+            #endregion
+
+            #region New
             if (!string.IsNullOrEmpty(templateEntity.Tables) && !"[]".Equals(templateEntity.Tables))
             {
                 var link = await _dbLinkService.GetInfo(templateEntity.DbLinkId);
-                var haveTableSql = await UpdateHaveTableSql(templateEntity, visualdevModelDataUpForm, id);
+                if (link == null)
+                    link = GetTenantDbLink();
+                var haveTableSql = await UpdateHaveTableSqlToList(templateEntity, visualdevModelDataUpForm, id);
 
                 try
                 {
                     //开启事务
-                    _visualDevModelDataRepository.Context.BeginTran();
+                    _db.BeginTran();
 
                     //修改功能数据
-                    await _databaseService.ExecuteSql(link, haveTableSql);
+                    foreach (var item in haveTableSql)
+                    {
+                        await _databaseService.ExecuteSql(link, item);
+                    }
 
                     if (templateEntity.WebType == 3 && visualdevModelDataUpForm.status == 0)
                     {
                         var _flowTaskRepository = App.GetService<IFlowTaskRepository>();
                         var _flowTaskService = App.GetService<IFlowTaskService>();
+                        var _flowEngineService = App.GetService<IFlowEngineService>();
                         var taskEntity = await _flowTaskRepository.GetTaskInfo(id);
+                        var FlowTitle = _userManager.User.RealName + "的" + templateEntity.FullName;//流程标题
+                        var IsSysTable = false;//流程是否系统表单
+                        var eModel = await _flowEngineService.GetInfo(templateEntity.FlowId);
+                        if (eModel?.FormType == 1) IsSysTable = true;
+                        //if (taskEntity == null)
+                        //    await _flowTaskService.Submit(null, templateEntity.FlowId, id, FlowTitle, 1, null, visualdevModelDataUpForm.data.Deserialize<JObject>(), 0, 0, IsSysTable, true, visualdevModelDataUpForm.candidateList);
+                        //else
+                        //    await _flowTaskService.Submit(id, templateEntity.FlowId, id, FlowTitle, 1, null, visualdevModelDataUpForm.data.Deserialize<JObject>(), 0, 0, IsSysTable, true, visualdevModelDataUpForm.candidateList);
                         if (taskEntity == null)
                             await _flowTaskService.Submit(null, templateEntity.FlowId, id, null, 1, null, visualdevModelDataUpForm.data.Deserialize<JObject>(), 0, 0, false, true);
                         else
@@ -948,11 +1846,11 @@ namespace JNPF.VisualDev.Core
                     }
 
                     //关闭事务
-                    _visualDevModelDataRepository.Context.CommitTran();
+                    _db.CommitTran();
                 }
-                catch (Exception)
+                catch (Exception ex)
                 {
-                    _visualDevModelDataRepository.Context.RollbackTran();
+                    _db.RollbackTran();
                     throw;
                 }
             }
@@ -965,6 +1863,12 @@ namespace JNPF.VisualDev.Core
                 //生成系统自动生成字段
                 allDataMap = await GenerateFeilds(fieldsModelList, allDataMap, false);
 
+                //获取旧数据
+                var oldEntity = await _visualDevModelDataRepository.SingleAsync(x=>x.Id == id);
+                var oldAllDataMap = oldEntity.Data.Deserialize<Dictionary<string, object>>();
+                var curr = fieldsModelList.Where(x => x.__config__.jnpfKey == "currOrganize" || x.__config__.jnpfKey == "currPosition").Select(x => x.__vModel__).ToList();
+                foreach (var item in curr) allDataMap[item] = oldAllDataMap[item];//当前组织和当前岗位不做修改
+
                 VisualDevModelDataEntity entity = new VisualDevModelDataEntity();
                 entity.Data = allDataMap.Serialize();
                 entity.VisualDevId = templateEntity.Id;
@@ -972,7 +1876,7 @@ namespace JNPF.VisualDev.Core
                 try
                 {
                     //开启事务
-                    _visualDevModelDataRepository.Context.BeginTran();
+                    _db.BeginTran();
 
                     //修改功能数据
                     await _visualDevModelDataRepository.Context.Updateable(entity).CallEntityMethod(m => m.LastModify()).ExecuteCommandAsync();
@@ -981,7 +1885,16 @@ namespace JNPF.VisualDev.Core
                     {
                         var _flowTaskRepository = App.GetService<IFlowTaskRepository>();
                         var _flowTaskService = App.GetService<IFlowTaskService>();
+                        var _flowEngineService = App.GetService<IFlowEngineService>();
                         var taskEntity = await _flowTaskRepository.GetTaskInfo(id);
+                        var FlowTitle = _userManager.User.RealName + "的" + templateEntity.FullName;//流程标题
+                        var IsSysTable = false;//流程是否系统表单
+                        var eModel = await _flowEngineService.GetInfo(templateEntity.FlowId);
+                        if (eModel?.FormType == 1) IsSysTable = true;
+                        //if (taskEntity == null)
+                        //    await _flowTaskService.Submit(null, templateEntity.FlowId, id, FlowTitle, 1, null, visualdevModelDataUpForm.data.Deserialize<JObject>(), 0, 0, IsSysTable, true, visualdevModelDataUpForm.candidateList);
+                        //else
+                        //    await _flowTaskService.Submit(id, templateEntity.FlowId, id, FlowTitle, 1, null, visualdevModelDataUpForm.data.Deserialize<JObject>(), 0, 0, IsSysTable, true, visualdevModelDataUpForm.candidateList);
                         if (taskEntity == null)
                             await _flowTaskService.Submit(null, templateEntity.FlowId, id, null, 1, null, visualdevModelDataUpForm.data.Deserialize<JObject>(), 0, 0, true);
                         else
@@ -989,14 +1902,16 @@ namespace JNPF.VisualDev.Core
                     }
 
                     //关闭事务
-                    _visualDevModelDataRepository.Context.CommitTran();
+                    _db.CommitTran();
                 }
                 catch (Exception)
                 {
-                    _visualDevModelDataRepository.Context.RollbackTran();
+                    _db.RollbackTran();
                     throw;
                 }
             }
+            #endregion
+
         }
 
         /// <summary>
@@ -1127,9 +2042,314 @@ namespace JNPF.VisualDev.Core
             return allDelSql.ToString() + mainSql.ToString() + childSql.ToString();
         }
 
+        /// <summary>
+        /// 修改有表SQL
+        /// </summary>
+        /// <param name="templateEntity"></param>
+        /// <param name="visualdevModelDataUpForm"></param>
+        /// <param name="id"></param>
+        /// <returns></returns>
+        public async Task<List<string>> UpdateHaveTableSqlToList(VisualDevEntity templateEntity, VisualDevModelDataUpInput visualdevModelDataUpForm, string id)
+        {
+            Dictionary<string, object> allDataMap = visualdevModelDataUpForm.data.ToObject<Dictionary<string, object>>();
+            FormDataModel formData = TemplateKeywordsHelper.ReplaceKeywords(templateEntity.FormData).ToObject<FormDataModel>();
+            List<FieldsModel> fieldsModelList = formData.fields.ToObject<List<FieldsModel>>();
+            fieldsModelList = TemplateDataConversion(fieldsModelList);
+            //生成系统自动生成字段
+            allDataMap = await GenerateFeilds(fieldsModelList, allDataMap, false);
+
+            #region 验证模板
+            if (fieldsModelList.Count(x => x.__config__.jnpfKey == "table") > 0)
+            {
+                var tlist = fieldsModelList.Where(x => x.__config__.jnpfKey == "table").ToList();//设计子表集合
+                var flist = fieldsModelList.Where(x => x.__vModel__.Contains("_jnpf_")).ToList();//单控件副表集合
+
+                //处理旧控件 部分没有 tableName
+                tlist.Where(x => string.IsNullOrWhiteSpace(x.__config__.tableName)).ToList().ForEach(item =>
+                {
+                    if (item.__vModel__.Contains("_jnpf_")) item.__config__.tableName = item.__vModel__.ReplaceRegex(@"_jnpf_(\w+)", "").Replace("jnpf_", "");//副表
+                });
+                flist.Where(x => string.IsNullOrWhiteSpace(x.__config__.tableName)).ToList().ForEach(item =>
+                {
+                    if (item.__vModel__.Contains("_jnpf_")) item.__config__.tableName = item.__vModel__.ReplaceRegex(@"_jnpf_(\w+)", "").Replace("jnpf_", "");//副表
+                });
+
+                tlist.ForEach(item =>
+                {
+                    var tc = flist.Find(x => x.__vModel__.Contains(item.__config__.tableName + "_jnpf_"));
+
+                    if (tc != null) throw JNPFException.Oh(ErrorCode.D1401);
+                });
+            }
+
+            #endregion
+
+            List<TableModel> tableMapList = templateEntity.Tables.ToObject<List<TableModel>>();
+            //循环表
+            var mainTable = tableMapList.Where(t => t.relationTable == "").FirstOrDefault();
+            var tableList = new List<DbTableFieldModel>();
+            var link = await _dbLinkService.GetInfo(templateEntity.DbLinkId);
+            if (link == null)
+                link = GetTenantDbLink();
+            var DbType = link?.DbType != null ? link.DbType : _db.CurrentConnectionConfig.DbType.ToString();
+            tableList = _databaseService.GetFieldList(link, mainTable.table);
+            var mainPrimary = tableList.Find(t => t.primaryKey == 1);
+            //执行sql语句
+            List<string> mainSql = new List<string>();
+            mainSql.Add(string.Format("delete from {0} where {2}='{1}';", mainTable.table, id, mainPrimary.field));
+            StringBuilder queryMain = new StringBuilder();
+            queryMain.AppendFormat("select * from {0} where {2}='{1}';", mainTable.table, id, mainPrimary.field);
+            var mainData = _databaseService.GetInterFaceData(link, queryMain.ToString()).Serialize().Deserialize<List<Dictionary<string, object>>>();
+            Dictionary<string, object> mainMap = GetTableDataInfo(mainData, fieldsModelList, "update").FirstOrDefault();
+            if (tableMapList.Count > 1)
+            {
+                //去除主表,剩余的为子表，再进行子表删除语句生成
+                tableMapList.RemoveAt(0);
+                foreach (var tableMap in tableMapList)
+                {
+                    //主表字段
+                    //与主表关联字段
+                    string relationField = tableMap.relationField;
+                    var relationFieldValue = mainMap.Where(f => f.Key == relationField).FirstOrDefault();
+                    //子表字段
+                    string tableField = tableMap.tableField;
+                    mainSql.Add(string.Format("delete from {0} where {1}='{2}';", tableMap.table, tableField, relationFieldValue.Value));
+                }
+            }
+            string mainId = id;
+            //分离主子表数据
+
+            //单控件 数据名称列表
+            var auxiliaryTableDataKey = fieldsModelList.Where(x => x.__vModel__.Contains("_jnpf_")).Select(x => x.__vModel__).ToList();
+
+            //先记录子表数据
+            var childTableDataKey = allDataMap.Where(d => d.Key.Contains("tableField")).Select(d => d.Key).ToList();
+            //记录主表数据
+            var mainTableDataKey = allDataMap.Keys.Except(childTableDataKey).Except(auxiliaryTableDataKey).ToList();
+            //实例化模板信息
+            //主表字段集合
+            StringBuilder mainFelid = new StringBuilder();
+            List<string> mainFelidList = new List<string>();
+            StringBuilder mainColumn = new StringBuilder();
+            var mainValues = new List<string>();
+
+            #region 处理当前组织和当前岗位 (不做修改)
+            //获取当前组织和当前岗位控件
+            var curr = fieldsModelList.Where(x => x.__config__.jnpfKey == "currOrganize" || x.__config__.jnpfKey == "currPosition").Select(x => x.__vModel__).ToList();
+            foreach (var item in curr)
+            {
+                if (mainMap.ContainsKey(item)) allDataMap[item] = mainMap[item];//当前组织和当前岗位不做修改
+            }
+            #endregion
+
+            //拼接主表插入语句
+            var mainFields = mainTable.fields;
+            foreach (var item in mainTableDataKey)
+            {
+                var mainField = mainFields.Where(f => f.Field == item).FirstOrDefault();
+                if (mainField != null)
+                {
+                    var itemData = allDataMap[item];
+                    if (itemData != null && !string.IsNullOrEmpty(itemData.ToString()) && !itemData.ToString().Contains("[]"))
+                    {
+                        //Column部分
+                        mainColumn.AppendFormat("{0},", item);
+                        //Values部分
+                        mainValues.Add(InsertValueHandle(DbType, tableList, item, itemData, fieldsModelList));
+                    }
+                }
+            }
+            //去除多余的,
+            if (mainTableDataKey.Count > 0)
+            {
+                mainSql.Add(string.Format(
+                    "insert into {0} ({3}{1}) values('{4}'{2});",
+                    mainTable.table,
+                    (mainColumn.Length > 0 ? "," : "") + mainColumn.ToString().Trim(','),
+                    (mainValues.Count > 0 ? "," : "") + string.Join(",", mainValues),
+                    mainPrimary.field,
+                    mainId));
+            }
+            else
+            {
+                mainSql.Add(string.Format("insert into {0} ({1}) values('{2}');", mainTable.table, mainPrimary.field, mainId));
+            }
+
+            #region 子表 单控件 集合
+            if (auxiliaryTableDataKey.Count > 0)
+            {
+                var cTableList = fieldsModelList.Where(x => x.__vModel__.Contains("_jnpf_")).Select(x => x.__config__.tableName).Distinct().ToList();//获取所有子表
+
+                cTableList.ForEach(tbname => {
+                    var tableAllField = _databaseService.GetFieldList(link, tbname);//数据库里获取表的所有字段
+
+                    #region 处理当前组织和当前岗位 (不做修改)
+                    if (curr.Any(x => x.Contains("_jnpf_")))
+                    {
+                        var querTableSql = string.Format("select * from {0} where {1}='{2}';", tbname, tableMapList.Find(t => t.table == tbname).tableField, mainId);
+
+                        //获取表数据
+                        var tableData = _databaseService.GetInterFaceData(link, querTableSql).Serialize().Deserialize<List<Dictionary<string, object>>>();
+                        foreach (var item in curr)
+                        {
+                            var itemKey = item.ReplaceRegex(@"(\w+)_jnpf_", "");
+                            if (tableData.Any() && tableData.FirstOrDefault().ContainsKey(itemKey)) allDataMap[item] = tableData.FirstOrDefault()[itemKey];//当前组织和当前岗位不做修改
+                        }
+                    }
+                    #endregion
+
+                    var tableFieldList = new List<string>();
+
+                    /////剔除空值控件
+                    auxiliaryTableDataKey.Where(x => x.Contains("jnpf_" + tbname + "_jnpf_")).ToList().ForEach(item =>
+                    {
+                        var itemData = allDataMap.Where(x => x.Key == item).Count() > 0 ? allDataMap[item] : null;
+                        if (itemData != null && itemData.ToString() != "") tableFieldList.Add(item);
+                    });
+
+                    var fieldList = string.Join(",", tableFieldList.Select(x => x.ReplaceRegex(@"(\w+)_jnpf_", "")).ToList());//插入的字段名
+
+                    var valueList = new List<string>();//对应的插入值
+
+                    tableFieldList.ForEach(item => {
+                        //前端未填写数据的字段，默认会找不到字段名，需要验证
+                        var itemData = allDataMap.Where(x => x.Key == item).Count() > 0 ? allDataMap[item] : null;
+                        if (itemData != null && itemData.ToString() != "")
+                            valueList.Add(InsertValueHandle(DbType, tableList, item, itemData, fieldsModelList));//Values部分
+                    });
+
+                    if (fieldList.Length > 1)//没有插入数据，只插入主键和外键数据
+                    {
+                        mainSql.Add(string.Format("insert into {0}({1},{2},{3}) values('{4}','{5}',{6});",
+                            tbname,
+                            _databaseService.GetFieldList(link, tbname)?.Find(x => x.primaryKey == 1).field,//主键字段名,
+                            tableMapList.Find(t => t.table == tbname).tableField,//外键字段名,
+                            fieldList,
+                            YitIdHelper.NextId().ToString(),
+                            mainId,
+                            string.Join(",", valueList)));
+                    }
+                    else
+                    {
+                        mainSql.Add(string.Format("insert into {0}({1},{2}) values('{3}','{4}');",
+                            tbname,
+                            _databaseService.GetFieldList(link, tbname)?.Find(x => x.primaryKey == 1).field,//主键字段名,
+                            tableMapList.Find(t => t.table == tbname).tableField,//外键字段名,
+                            YitIdHelper.NextId().ToString(),
+                            mainId));
+                    }
+                });
+            }
+
+            #endregion
+
+            //拼接子表sql
+            foreach (var item in childTableDataKey)
+            {
+                //查找到该控件数据
+                var model = allDataMap[item].ToJson().ToList<Dictionary<string, object>>();
+                if (model != null && model.Count > 0)
+                {
+                    //利用key去找模板
+                    var fieldsModel = fieldsModelList.Find(f => f.__vModel__ == item);
+                    var fieldsConfig = fieldsModel.__config__;
+                    model = GetTableDataListByDic(model, fieldsConfig.children);
+                    StringBuilder childColumn = new StringBuilder();
+                    var childValues = new List<string>();
+                    var childTable = tableMapList.Where(t => t.table == fieldsConfig.tableName).FirstOrDefault();
+                    tableList = new List<DbTableFieldModel>();
+                    tableList = _databaseService.GetFieldList(link, childTable.table);
+                    var childPrimary = tableList.Find(t => t.primaryKey == 1);
+                    foreach (var data in model)
+                    {
+                        if (data.Count > 0)
+                        {
+                            #region 处理当前组织和当前岗位 (不做修改)
+                            //获取当前组织和当前岗位控件
+                            curr = fieldsConfig.children.Where(x => x.__config__.jnpfKey == "currOrganize" || x.__config__.jnpfKey == "currPosition").Select(x => x.__vModel__).ToList();
+                            if (curr.Any())
+                            {
+                                var querTableSql = string.Format("select * from {0} where {1}='{2}';", fieldsModel.__config__.tableName, childTable.tableField, mainId);
+
+                                //获取表数据
+                                var tableData = _databaseService.GetInterFaceData(link, querTableSql).Serialize().Deserialize<List<Dictionary<string, object>>>();
+                                foreach (var it in curr)
+                                {
+                                    if (tableData.Any() && tableData.FirstOrDefault().ContainsKey(it)) data[it] = tableData.FirstOrDefault()[it];//当前组织和当前岗位不做修改
+                                }
+                            }
+                            #endregion
+
+                            foreach (KeyValuePair<string, object> child in data)
+                            {
+                                if (!string.IsNullOrWhiteSpace(child.Key) && child.Value != null)
+                                {
+                                    //Column部分
+                                    childColumn.AppendFormat("{0},", child.Key);
+                                    //Values部分
+                                    childValues.Add(InsertValueHandle(DbType, tableList, child.Key, child.Value, fieldsConfig.children));
+                                }
+                            }
+                            if (!string.IsNullOrEmpty(childColumn.ToString()))
+                            {
+                                mainSql.Add(string.Format(
+                                    "insert into {0}({6},{4},{1}) values('{3}','{5}',{2});",
+                                    fieldsModel.__config__.tableName,
+                                    childColumn.ToString().Trim(','),
+                                    string.Join(",", childValues),
+                                    YitIdHelper.NextId().ToString(),
+                                    childTable.tableField,
+                                    mainId,
+                                    childPrimary.field));
+                            }
+                            childColumn = new StringBuilder();
+                            childValues = new List<string>();
+                        }
+                    }
+                }
+            }
+            return mainSql;
+        }
         #endregion
 
         #region PrivateMethod
+        /// <summary>
+        /// 处理 Sql 插入数据的 value
+        /// </summary>
+        /// <param name="dbType">数据库 类型</param>
+        /// <param name="tableList">表数据</param>
+        /// <param name="field">前端字段名</param>
+        /// <param name="data">插入的数据</param>
+        /// <param name="_fieldsModelList"></param>
+        /// <returns></returns>
+        private string InsertValueHandle(string dbType, List<DbTableFieldModel> _tableList, string field, object data, List<FieldsModel> _fieldsModelList)
+        {
+            //单独处理 Oracle,Kdbndp 日期格式转换
+            //if ((dbType == "Oracle" || dbType == "Kdbndp") && _tableList.Find(x => x.dataType == "DateTime" && x.field == field.ReplaceRegex(@"(\w+)_jnpf_", "")) != null)
+            if (dbType == "Oracle" && _tableList.Find(x => x.dataType == "DateTime" && x.field == field.ReplaceRegex(@"(\w+)_jnpf_", "")) != null)
+                return string.Format("to_date('{0}','yyyy-mm-dd HH24/MI/SS')", TransformDataObject(data, field, _fieldsModelList, "create"));
+            else
+                return string.Format("'{0}'", TransformDataObject(data, field, _fieldsModelList, "create"));
+        }
+
+        /// <summary>
+        /// 获取多租户Link
+        /// </summary>
+        /// <returns></returns>
+        public DbLinkEntity GetTenantDbLink()
+        {
+            return new DbLinkEntity
+            {
+                Id = _userManager.TenantId,
+                ServiceName = _userManager.TenantDbName,
+                DbType = App.Configuration["ConnectionStrings:DBType"],
+                Host = App.Configuration["ConnectionStrings:Host"],
+                Port = App.Configuration["ConnectionStrings:Port"].ToInt(),
+                UserName = App.Configuration["ConnectionStrings:UserName"],
+                Password = App.Configuration["ConnectionStrings:Password"]
+            };
+        }
+
 
         #region 拆解模板
 
@@ -2170,22 +3390,354 @@ namespace JNPF.VisualDev.Core
         /// <returns></returns>
         private async Task<Dictionary<string, object>> GetVisualDevTemplateData(string moldelId, List<FieldsModel> formData)
         {
+            #region old
+            //Dictionary<string, object> templateData = new Dictionary<string, object>();
+            //var cacheKey = CommonConst.VISUALDEV + _userManager.TenantId + "_" + moldelId;
+            ////_sysCacheService.Set(cacheKey, "12345");
+            ////缓存有问题先注释
+            ////if (_sysCacheService.Exists(cacheKey))
+            ////{
+            ////    templateData = _sysCacheService.Get(cacheKey).Deserialize<Dictionary<string, object>>();
+            ////}
+            ////else
+            ////{
+            //foreach (var model in formData)
+            //{
+            //    if (model != null && model.__vModel__ != null)
+            //    {
+            //        ConfigModel configModel = model.__config__;
+            //        string fieldName1 = model.__vModel__;
+            //        string type = configModel.jnpfKey;
+            //        switch (type)
+            //        {
+            //            //单选框
+            //            case JnpfKeyConst.RADIO:
+            //                {
+            //                    if (vModelType.DICTIONARY.GetDescription() == configModel.dataType)
+            //                    {
+            //                        var dictionaryDataEntityList = string.IsNullOrEmpty(configModel.dictionaryType) ? null : await _dictionaryDataService.GetList(configModel.dictionaryType);
+            //                        List<Dictionary<string, string>> dictionaryDataList = new List<Dictionary<string, string>>();
+            //                        foreach (var item in dictionaryDataEntityList)
+            //                        {
+            //                            Dictionary<string, string> dictionary = new Dictionary<string, string>();
+            //                            dictionary.Add(item.Id, item.FullName);
+            //                            dictionaryDataList.Add(dictionary);
+            //                        }
+            //                        templateData.Add(fieldName1, dictionaryDataList);
+            //                    }
+            //                    if (vModelType.STATIC.GetDescription() == configModel.dataType)
+            //                    {
+            //                        var optionList = model.__slot__.options;
+            //                        List<Dictionary<string, string>> list = new List<Dictionary<string, string>>();
+            //                        foreach (var item in optionList)
+            //                        {
+            //                            Dictionary<string, string> option = new Dictionary<string, string>();
+            //                            option.Add(item[model.__config__.props.value].ToString(), item[model.__config__.props.label].ToString());
+            //                            list.Add(option);
+            //                        }
+            //                        templateData.Add(fieldName1, list);
+            //                    }
+            //                    if (vModelType.DYNAMIC.GetDescription() == configModel.dataType)
+            //                    {
+            //                        //获取远端数据
+            //                        var dynamic = await _dataInterfaceService.GetInfo(model.__config__.propsUrl);
+            //                        if (1.Equals(dynamic.DataType))
+            //                        {
+            //                            var linkEntity = await _dbLinkService.GetInfo(dynamic.DBLinkId);
+            //                            var dt = _databaseService.GetInterFaceData(linkEntity, dynamic.Query);
+            //                            List<Dictionary<string, object>> dynamicDataList = dt.Serialize().Deserialize<List<Dictionary<string, object>>>();
+            //                            List<Dictionary<string, string>> list = new List<Dictionary<string, string>>();
+            //                            foreach (var item in dynamicDataList)
+            //                            {
+            //                                Dictionary<string, string> dynamicDic = new Dictionary<string, string>();
+            //                                dynamicDic.Add(item[model.__config__.props.value].ToString(), item[model.__config__.props.label].ToString());
+            //                                list.Add(dynamicDic);
+            //                            }
+            //                            templateData.Add(fieldName1, list);
+            //                        }
+            //                    }
+            //                }
+            //                break;
+            //            //下拉框
+            //            case JnpfKeyConst.SELECT:
+            //                {
+            //                    if (vModelType.DICTIONARY.GetDescription() == configModel.dataType)
+            //                    {
+            //                        List<DictionaryDataEntity> dictionaryDataEntityList = string.IsNullOrEmpty(configModel.dictionaryType) ? null : await _dictionaryDataService.GetList(configModel.dictionaryType);
+            //                        List<Dictionary<string, string>> dictionaryDataList = new List<Dictionary<string, string>>();
+            //                        foreach (var item in dictionaryDataEntityList)
+            //                        {
+            //                            Dictionary<string, string> dictionary = new Dictionary<string, string>();
+            //                            dictionary.Add(item.Id, item.FullName);
+            //                            dictionaryDataList.Add(dictionary);
+            //                        }
+            //                        templateData.Add(fieldName1, dictionaryDataList);
+            //                    }
+            //                    else if (vModelType.STATIC.GetDescription() == configModel.dataType)
+            //                    {
+            //                        var optionList = model.__slot__.options;
+            //                        List<Dictionary<string, string>> list = new List<Dictionary<string, string>>();
+            //                        foreach (var item in optionList)
+            //                        {
+            //                            Dictionary<string, string> option = new Dictionary<string, string>();
+            //                            option.Add(item[model.__config__.props.value].ToString(), item[model.__config__.props.label].ToString());
+            //                            list.Add(option);
+            //                        }
+            //                        templateData.Add(fieldName1, list);
+            //                    }
+            //                    else if (vModelType.DYNAMIC.GetDescription() == configModel.dataType)
+            //                    {
+            //                        //获取远端数据
+            //                        DataInterfaceEntity dynamic = await _dataInterfaceService.GetInfo(model.__config__.propsUrl);
+            //                        if (1.Equals(dynamic.DataType))
+            //                        {
+            //                            var linkEntity = await _dbLinkService.GetInfo(dynamic.DBLinkId);
+            //                            var dt = _databaseService.GetInterFaceData(linkEntity, dynamic.Query);
+            //                            List<Dictionary<string, object>> dynamicDataList = dt.Serialize().Deserialize<List<Dictionary<string, object>>>();
+            //                            List<Dictionary<string, string>> list = new List<Dictionary<string, string>>();
+            //                            foreach (var item in dynamicDataList)
+            //                            {
+            //                                Dictionary<string, string> dynamicDic = new Dictionary<string, string>();
+            //                                dynamicDic.Add(item[model.__config__.props.value].ToString(), item[model.__config__.props.label].ToString());
+            //                                list.Add(dynamicDic);
+            //                            }
+            //                            templateData.Add(fieldName1, list);
+            //                        }
+            //                    }
+            //                }
+            //                break;
+            //            //复选框
+            //            case JnpfKeyConst.CHECKBOX:
+            //                {
+            //                    if (vModelType.DICTIONARY.GetDescription() == configModel.dataType)
+            //                    {
+            //                        List<DictionaryDataEntity> dictionaryDataEntityList = string.IsNullOrEmpty(configModel.dictionaryType) ? null : await _dictionaryDataService.GetList(configModel.dictionaryType);
+            //                        List<Dictionary<string, string>> dictionaryDataList = new List<Dictionary<string, string>>();
+            //                        foreach (var item in dictionaryDataEntityList)
+            //                        {
+            //                            Dictionary<string, string> dictionary = new Dictionary<string, string>();
+            //                            dictionary.Add(item.Id, item.FullName);
+            //                            dictionaryDataList.Add(dictionary);
+            //                        }
+            //                        templateData.Add(fieldName1, dictionaryDataList);
+            //                    }
+            //                    if (vModelType.STATIC.GetDescription() == configModel.dataType)
+            //                    {
+            //                        var optionList = model.__slot__.options;
+            //                        List<Dictionary<string, string>> list = new List<Dictionary<string, string>>();
+            //                        foreach (var item in optionList)
+            //                        {
+            //                            Dictionary<string, string> option = new Dictionary<string, string>();
+            //                            option.Add(item[model.__config__.props.value].ToString(), item[model.__config__.props.label].ToString());
+            //                            list.Add(option);
+            //                        }
+            //                        templateData.Add(fieldName1, list);
+            //                    }
+            //                    if (vModelType.DYNAMIC.GetDescription() == configModel.dataType)
+            //                    {
+            //                        //获取远端数据
+            //                        DataInterfaceEntity dynamic = await _dataInterfaceService.GetInfo(model.__config__.propsUrl);
+            //                        if (1.Equals(dynamic.DataType))
+            //                        {
+            //                            var linkEntity = await _dbLinkService.GetInfo(dynamic.DBLinkId);
+            //                            var dt = _databaseService.GetInterFaceData(linkEntity, dynamic.Query);
+            //                            List<Dictionary<string, object>> dynamicDataList = dt.Serialize().Deserialize<List<Dictionary<string, object>>>();
+            //                            List<Dictionary<string, string>> list = new List<Dictionary<string, string>>();
+            //                            foreach (var item in dynamicDataList)
+            //                            {
+            //                                Dictionary<string, string> dynamicDic = new Dictionary<string, string>();
+            //                                dynamicDic.Add(item[model.__config__.props.value].ToString(), item[model.__config__.props.label].ToString());
+            //                                list.Add(dynamicDic);
+            //                            }
+            //                            templateData.Add(fieldName1, list);
+            //                        }
+            //                    }
+            //                }
+            //                break;
+            //            //树形选择
+            //            case JnpfKeyConst.TREESELECT:
+            //                {
+            //                    if (vModelType.DICTIONARY.GetDescription() == configModel.dataType)
+            //                    {
+            //                        List<DictionaryDataEntity> dictionaryDataEntityList = await _dictionaryDataService.GetList();
+            //                        List<Dictionary<string, string>> dictionaryDataList = new List<Dictionary<string, string>>();
+            //                        foreach (var item in dictionaryDataEntityList)
+            //                        {
+            //                            Dictionary<string, string> dictionary = new Dictionary<string, string>();
+            //                            dictionary.Add(item.Id, item.FullName);
+            //                            dictionaryDataList.Add(dictionary);
+            //                        }
+            //                        templateData.Add(fieldName1, dictionaryDataList);
+            //                    }
+            //                    else if (vModelType.STATIC.GetDescription() == configModel.dataType)
+            //                    {
+            //                        var props = model.props.props;
+            //                        var optionList = GetTreeOptions(model.options, props);
+            //                        List<Dictionary<string, string>> list = new List<Dictionary<string, string>>();
+            //                        foreach (var item in optionList)
+            //                        {
+            //                            Dictionary<string, string> option = new Dictionary<string, string>();
+            //                            option.Add(item.value, item.label);
+            //                            list.Add(option);
+            //                        }
+            //                        templateData.Add(fieldName1, list);
+            //                    }
+            //                    else if (vModelType.DYNAMIC.GetDescription() == configModel.dataType)
+            //                    {
+            //                        //获取远端数据
+            //                        DataInterfaceEntity dynamic = await _dataInterfaceService.GetInfo(model.__config__.propsUrl);
+            //                        if (1.Equals(dynamic.DataType))
+            //                        {
+            //                            var linkEntity = await _dbLinkService.GetInfo(dynamic.DBLinkId);
+            //                            var dt = _databaseService.GetInterFaceData(linkEntity, dynamic.Query);
+            //                            List<Dictionary<string, object>> dynamicDataList = dt.Serialize().Deserialize<List<Dictionary<string, object>>>();
+            //                            List<Dictionary<string, string>> list = new List<Dictionary<string, string>>();
+            //                            foreach (var item in dynamicDataList)
+            //                            {
+            //                                Dictionary<string, string> dynamicDic = new Dictionary<string, string>();
+            //                                dynamicDic.Add(item[model.__config__.props.value].ToString(), item[model.__config__.props.label].ToString());
+            //                                list.Add(dynamicDic);
+            //                            }
+            //                            templateData.Add(fieldName1, list);
+            //                        }
+            //                    }
+            //                }
+            //                break;
+            //            //公司
+            //            case JnpfKeyConst.COMSELECT:
+            //                {
+            //                    var com_organizeEntityList = await _organizeService.GetCompanyListAsync();
+            //                    List<Dictionary<string, string>> com_organizeList = new List<Dictionary<string, string>>();
+            //                    foreach (var item in com_organizeEntityList)
+            //                    {
+            //                        Dictionary<string, string> com_organize = new Dictionary<string, string>();
+            //                        com_organize.Add(item.Id, item.FullName);
+            //                        com_organizeList.Add(com_organize);
+            //                    }
+            //                    templateData.Add(fieldName1, com_organizeList);
+            //                }
+            //                break;
+            //            //部门
+            //            case JnpfKeyConst.DEPSELECT:
+            //                {
+            //                    var dep_organizeEntityList = await _departmentService.GetListAsync();
+            //                    List<Dictionary<string, string>> dep_organizeList = new List<Dictionary<string, string>>();
+            //                    foreach (var item in dep_organizeEntityList)
+            //                    {
+            //                        Dictionary<string, string> dep_organize = new Dictionary<string, string>();
+            //                        dep_organize.Add(item.Id, item.FullName);
+            //                        dep_organizeList.Add(dep_organize);
+            //                    }
+            //                    templateData.Add(fieldName1, dep_organizeList);
+            //                }
+            //                break;
+            //            //岗位
+            //            case JnpfKeyConst.POSSELECT:
+            //                {
+            //                    var positionEntityList = await _positionService.GetListAsync();
+            //                    List<Dictionary<string, string>> positionList = new List<Dictionary<string, string>>();
+            //                    foreach (var item in positionEntityList)
+            //                    {
+            //                        Dictionary<string, string> position = new Dictionary<string, string>();
+            //                        position.Add(item.Id, item.FullName);
+            //                        positionList.Add(position);
+            //                    }
+            //                    templateData.Add(fieldName1, positionList);
+            //                }
+            //                break;
+            //            //用户
+            //            case JnpfKeyConst.USERSELECT:
+            //                {
+            //                    var userEntityList = await _userService.GetList();
+            //                    List<Dictionary<string, string>> userList = new List<Dictionary<string, string>>();
+            //                    foreach (var item in userEntityList)
+            //                    {
+            //                        Dictionary<string, string> user = new Dictionary<string, string>();
+            //                        user.Add(item.Id, item.RealName + "/" + item.Account);
+            //                        userList.Add(user);
+            //                    }
+            //                    templateData.Add(fieldName1, userList);
+            //                }
+            //                break;
+            //            //数据字典
+            //            case JnpfKeyConst.DICTIONARY:
+            //                {
+            //                    var dictionaryTypeEntityLists = await _dictionaryTypeService.GetList();
+            //                    List<Dictionary<string, string>> dictionaryTypeList = new List<Dictionary<string, string>>();
+            //                    foreach (var item in dictionaryTypeEntityLists)
+            //                    {
+            //                        Dictionary<string, string> dictionaryType = new Dictionary<string, string>();
+            //                        dictionaryType.Add(item.Id, item.FullName);
+            //                        dictionaryTypeList.Add(dictionaryType);
+            //                    }
+            //                    templateData.Add(fieldName1, dictionaryTypeList);
+            //                }
+            //                break;
+            //            //省市区
+            //            case JnpfKeyConst.ADDRESS:
+            //                {
+            //                    var addressEntityList = await _provinceService.GetList();
+            //                    List<Dictionary<string, string>> addressList = new List<Dictionary<string, string>>();
+            //                    foreach (var item in addressEntityList)
+            //                    {
+            //                        Dictionary<string, string> address = new Dictionary<string, string>();
+            //                        address.Add(item.Id, item.FullName);
+            //                        addressList.Add(address);
+            //                    }
+            //                    templateData.Add(fieldName1, addressList);
+            //                }
+            //                break;
+            //            //级联选择
+            //            case JnpfKeyConst.CASCADER:
+            //                {
+            //                    if (vModelType.STATIC.GetDescription() == configModel.dataType)
+            //                    {
+            //                        var props = model.props.props;
+            //                        var optionList = GetTreeOptions(model.options, props);
+            //                        List<Dictionary<string, string>> list = new List<Dictionary<string, string>>();
+            //                        foreach (var item in optionList)
+            //                        {
+            //                            Dictionary<string, string> option = new Dictionary<string, string>();
+            //                            option.Add(item.value, item.label);
+            //                            list.Add(option);
+            //                        }
+            //                        templateData.Add(fieldName1, list);
+            //                    }
+            //                }
+            //                break;
+            //        }
+            //    }
+            //}
+            ////缓存2分钟
+            //_sysCacheService.Set(cacheKey, templateData, TimeSpan.FromMinutes(2));
+            ////}
+            #endregion
+
+            #region New
             Dictionary<string, object> templateData = new Dictionary<string, object>();
             var cacheKey = CommonConst.VISUALDEV + _userManager.TenantId + "_" + moldelId;
-            //_sysCacheService.Set(cacheKey, "12345");
-            //缓存有问题先注释
-            //if (_sysCacheService.Exists(cacheKey))
-            //{
-            //    templateData = _sysCacheService.Get(cacheKey).Deserialize<Dictionary<string, object>>();
-            //}
-            //else
-            //{
-            foreach (var model in formData)
+            if (_sysCacheService.Exists(cacheKey))
+            {
+                templateData = _sysCacheService.Get(cacheKey).Deserialize<Dictionary<string, object>>();
+            }
+            else
+            {
+                #region 远端数据 配置参数
+                var parameter = new List<SugarParameter>();
+                if (_userManager.ToKen != null)
+                {
+                    parameter.Add(new SugarParameter("@user", _userManager.UserId));
+                    parameter.Add(new SugarParameter("@organize", _userManager.User.OrganizeId));
+                    parameter.Add(new SugarParameter("@department", _userManager.User.OrganizeId));
+                    parameter.Add(new SugarParameter("@postion", _userManager.User.PositionId));
+                }
+                #endregion
+                foreach (var model in formData)
                 {
                     if (model != null && model.__vModel__ != null)
                     {
                         ConfigModel configModel = model.__config__;
-                        string fieldName1 = model.__vModel__;
+                        string fieldName1 = configModel.renderKey + "_" + model.__vModel__;
                         string type = configModel.jnpfKey;
                         switch (type)
                         {
@@ -2200,6 +3752,7 @@ namespace JNPF.VisualDev.Core
                                         {
                                             Dictionary<string, string> dictionary = new Dictionary<string, string>();
                                             dictionary.Add(item.Id, item.FullName);
+                                            dictionary.Add(item.EnCode, item.FullName);
                                             dictionaryDataList.Add(dictionary);
                                         }
                                         templateData.Add(fieldName1, dictionaryDataList);
@@ -2220,10 +3773,12 @@ namespace JNPF.VisualDev.Core
                                     {
                                         //获取远端数据
                                         var dynamic = await _dataInterfaceService.GetInfo(model.__config__.propsUrl);
-                                        if (1.Equals(dynamic.DataType))
+                                        if (dynamic != null && 1.Equals(dynamic.DataType))
                                         {
                                             var linkEntity = await _dbLinkService.GetInfo(dynamic.DBLinkId);
-                                            var dt = _databaseService.GetInterFaceData(linkEntity, dynamic.Query);
+                                            if (linkEntity == null) linkEntity = GetTenantDbLink();
+                                            _dataInterfaceService.ReplaceParameterValue(dynamic, new Dictionary<string, string>());
+                                            var dt = _databaseService.GetInterFaceData(linkEntity, dynamic.Query, parameter.ToArray());
                                             List<Dictionary<string, object>> dynamicDataList = dt.Serialize().Deserialize<List<Dictionary<string, object>>>();
                                             List<Dictionary<string, string>> list = new List<Dictionary<string, string>>();
                                             foreach (var item in dynamicDataList)
@@ -2248,6 +3803,7 @@ namespace JNPF.VisualDev.Core
                                         {
                                             Dictionary<string, string> dictionary = new Dictionary<string, string>();
                                             dictionary.Add(item.Id, item.FullName);
+                                            dictionary.Add(item.EnCode, item.FullName);
                                             dictionaryDataList.Add(dictionary);
                                         }
                                         templateData.Add(fieldName1, dictionaryDataList);
@@ -2268,10 +3824,13 @@ namespace JNPF.VisualDev.Core
                                     {
                                         //获取远端数据
                                         DataInterfaceEntity dynamic = await _dataInterfaceService.GetInfo(model.__config__.propsUrl);
-                                        if (1.Equals(dynamic.DataType))
+
+                                        if (dynamic != null && 1.Equals(dynamic.DataType))
                                         {
                                             var linkEntity = await _dbLinkService.GetInfo(dynamic.DBLinkId);
-                                            var dt = _databaseService.GetInterFaceData(linkEntity, dynamic.Query);
+                                            if (linkEntity == null) linkEntity = GetTenantDbLink();
+                                            _dataInterfaceService.ReplaceParameterValue(dynamic, new Dictionary<string, string>());
+                                            var dt = _databaseService.GetInterFaceData(linkEntity, dynamic.Query, parameter.ToArray());
                                             List<Dictionary<string, object>> dynamicDataList = dt.Serialize().Deserialize<List<Dictionary<string, object>>>();
                                             List<Dictionary<string, string>> list = new List<Dictionary<string, string>>();
                                             foreach (var item in dynamicDataList)
@@ -2296,6 +3855,7 @@ namespace JNPF.VisualDev.Core
                                         {
                                             Dictionary<string, string> dictionary = new Dictionary<string, string>();
                                             dictionary.Add(item.Id, item.FullName);
+                                            dictionary.Add(item.EnCode, item.FullName);
                                             dictionaryDataList.Add(dictionary);
                                         }
                                         templateData.Add(fieldName1, dictionaryDataList);
@@ -2316,10 +3876,12 @@ namespace JNPF.VisualDev.Core
                                     {
                                         //获取远端数据
                                         DataInterfaceEntity dynamic = await _dataInterfaceService.GetInfo(model.__config__.propsUrl);
-                                        if (1.Equals(dynamic.DataType))
+                                        if (dynamic != null && 1.Equals(dynamic.DataType))
                                         {
                                             var linkEntity = await _dbLinkService.GetInfo(dynamic.DBLinkId);
-                                            var dt = _databaseService.GetInterFaceData(linkEntity, dynamic.Query);
+                                            if (linkEntity == null) linkEntity = GetTenantDbLink();
+                                            _dataInterfaceService.ReplaceParameterValue(dynamic, new Dictionary<string, string>());
+                                            var dt = _databaseService.GetInterFaceData(linkEntity, dynamic.Query, parameter.ToArray());
                                             List<Dictionary<string, object>> dynamicDataList = dt.Serialize().Deserialize<List<Dictionary<string, object>>>();
                                             List<Dictionary<string, string>> list = new List<Dictionary<string, string>>();
                                             foreach (var item in dynamicDataList)
@@ -2344,6 +3906,7 @@ namespace JNPF.VisualDev.Core
                                         {
                                             Dictionary<string, string> dictionary = new Dictionary<string, string>();
                                             dictionary.Add(item.Id, item.FullName);
+                                            dictionary.Add(item.EnCode, item.FullName);
                                             dictionaryDataList.Add(dictionary);
                                         }
                                         templateData.Add(fieldName1, dictionaryDataList);
@@ -2365,10 +3928,12 @@ namespace JNPF.VisualDev.Core
                                     {
                                         //获取远端数据
                                         DataInterfaceEntity dynamic = await _dataInterfaceService.GetInfo(model.__config__.propsUrl);
-                                        if (1.Equals(dynamic.DataType))
+                                        if (dynamic != null && 1.Equals(dynamic.DataType))
                                         {
                                             var linkEntity = await _dbLinkService.GetInfo(dynamic.DBLinkId);
-                                            var dt = _databaseService.GetInterFaceData(linkEntity, dynamic.Query);
+                                            if (linkEntity == null) linkEntity = GetTenantDbLink();
+                                            _dataInterfaceService.ReplaceParameterValue(dynamic, new Dictionary<string, string>());
+                                            var dt = _databaseService.GetInterFaceData(linkEntity, dynamic.Query, parameter.ToArray());
                                             List<Dictionary<string, object>> dynamicDataList = dt.Serialize().Deserialize<List<Dictionary<string, object>>>();
                                             List<Dictionary<string, string>> list = new List<Dictionary<string, string>>();
                                             foreach (var item in dynamicDataList)
@@ -2385,12 +3950,12 @@ namespace JNPF.VisualDev.Core
                             //公司
                             case JnpfKeyConst.COMSELECT:
                                 {
-                                    var com_organizeEntityList = await _organizeService.GetCompanyListAsync();
-                                    List<Dictionary<string, string>> com_organizeList = new List<Dictionary<string, string>>();
+                                    var com_organizeEntityList = await _organizeService.GetListAsync();
+                                    List<Dictionary<string, string[]>> com_organizeList = new List<Dictionary<string, string[]>>();
                                     foreach (var item in com_organizeEntityList)
                                     {
-                                        Dictionary<string, string> com_organize = new Dictionary<string, string>();
-                                        com_organize.Add(item.Id, item.FullName);
+                                        Dictionary<string, string[]> com_organize = new Dictionary<string, string[]>();
+                                        com_organize.Add(item.Id, new string[] { item.OrganizeIdTree, item.FullName });
                                         com_organizeList.Add(com_organize);
                                     }
                                     templateData.Add(fieldName1, com_organizeList);
@@ -2424,20 +3989,6 @@ namespace JNPF.VisualDev.Core
                                     templateData.Add(fieldName1, positionList);
                                 }
                                 break;
-                            //用户
-                            case JnpfKeyConst.USERSELECT:
-                                {
-                                    var userEntityList = await _userService.GetList();
-                                    List<Dictionary<string, string>> userList = new List<Dictionary<string, string>>();
-                                    foreach (var item in userEntityList)
-                                    {
-                                        Dictionary<string, string> user = new Dictionary<string, string>();
-                                        user.Add(item.Id, item.RealName + "/" + item.Account);
-                                        userList.Add(user);
-                                    }
-                                    templateData.Add(fieldName1, userList);
-                                }
-                                break;
                             //数据字典
                             case JnpfKeyConst.DICTIONARY:
                                 {
@@ -2452,23 +4003,22 @@ namespace JNPF.VisualDev.Core
                                     templateData.Add(fieldName1, dictionaryTypeList);
                                 }
                                 break;
-                            //省市区
-                            case JnpfKeyConst.ADDRESS:
-                                {
-                                    var addressEntityList = await _provinceService.GetList();
-                                    List<Dictionary<string, string>> addressList = new List<Dictionary<string, string>>();
-                                    foreach (var item in addressEntityList)
-                                    {
-                                        Dictionary<string, string> address = new Dictionary<string, string>();
-                                        address.Add(item.Id, item.FullName);
-                                        addressList.Add(address);
-                                    }
-                                    templateData.Add(fieldName1, addressList);
-                                }
-                                break;
                             //级联选择
                             case JnpfKeyConst.CASCADER:
                                 {
+                                    if (vModelType.DICTIONARY.GetDescription() == configModel.dataType)
+                                    {
+                                        List<DictionaryDataEntity> dictionaryDataEntityList = string.IsNullOrEmpty(configModel.dictionaryType) ? null : await _dictionaryDataService.GetList(configModel.dictionaryType);
+                                        List<Dictionary<string, string>> dictionaryDataList = new List<Dictionary<string, string>>();
+                                        foreach (var item in dictionaryDataEntityList)
+                                        {
+                                            Dictionary<string, string> dictionary = new Dictionary<string, string>();
+                                            dictionary.Add(item.Id, item.FullName);
+                                            dictionary.Add(item.EnCode, item.FullName);
+                                            dictionaryDataList.Add(dictionary);
+                                        }
+                                        templateData.Add(fieldName1, dictionaryDataList);
+                                    }
                                     if (vModelType.STATIC.GetDescription() == configModel.dataType)
                                     {
                                         var props = model.props.props;
@@ -2484,12 +4034,164 @@ namespace JNPF.VisualDev.Core
                                     }
                                 }
                                 break;
+                            //所属组织
+                            case JnpfKeyConst.CURRORGANIZE:
+                                {
+                                    var orgMapList = await _organizeService.GetListAsync();
+                                    List<Dictionary<string, string[]>> addList = new List<Dictionary<string, string[]>>();
+                                    foreach (var item in orgMapList)
+                                    {
+                                        Dictionary<string, string[]> address = new Dictionary<string, string[]>();
+                                        address.Add(item.Id, new string[] { item.OrganizeIdTree, item.Category, item.FullName });
+                                        addList.Add(address);
+                                    }
+                                    templateData.Add(fieldName1, addList);
+                                }
+                                break;
                         }
                     }
                 }
+
                 //缓存2分钟
                 _sysCacheService.Set(cacheKey, templateData, TimeSpan.FromMinutes(2));
-            //}
+            }
+
+            #region 省市区 单独处理
+            if (formData.Where(x => x.__config__.jnpfKey == "address").Any())
+            {
+                var level = formData.Where(x => x.__config__.jnpfKey == "address" && x.level != 3).Any();
+                var level3 = formData.Where(x => x.__config__.jnpfKey == "address" && x.level == 3).Any();
+
+                var addCacheKey = CommonConst.VISUALDEV + "_address1";
+                var addCacheKey2 = CommonConst.VISUALDEV + "_address2";
+                if (level3)
+                {
+                    if (_sysCacheService.Exists(addCacheKey2))
+                    {
+                        templateData.Add(addCacheKey2, _sysCacheService.Get(addCacheKey2));
+                    }
+                    else
+                    {
+                        var addressEntityList = await _provinceService.GetList();
+
+                        #region 处理省市区树
+                        addressEntityList.Where(x => x.Type == "1").ToList().ForEach(item =>
+                        {
+                            item.QuickQuery = item.FullName;
+                        });
+                        addressEntityList.Where(x => x.Type == "2").ToList().ForEach(item =>
+                        {
+                            item.QuickQuery = addressEntityList.Find(x => x.Id == item.ParentId).QuickQuery + "/" + item.FullName;
+                        });
+                        addressEntityList.Where(x => x.Type == "3").ToList().ForEach(item =>
+                        {
+                            item.QuickQuery = addressEntityList.Find(x => x.Id == item.ParentId).QuickQuery + "/" + item.FullName;
+                        });
+                        addressEntityList.Where(x => x.Type == "4").ToList().ForEach(item =>
+                        {
+                            var it = addressEntityList.Find(x => x.Id == item.ParentId);
+                            if (it != null) item.QuickQuery = it.QuickQuery + "/" + item.FullName;
+                        });
+                        #endregion
+
+                        #region 分开 省市区街道 数据
+                        List<Dictionary<string, string>> addressList = new List<Dictionary<string, string>>();
+                        foreach (var item in addressEntityList.Where(x => x.Type == "4").ToList())
+                        {
+                            Dictionary<string, string> address = new Dictionary<string, string>();
+                            address.Add(item.Id, item.QuickQuery);
+                            addressList.Add(address);
+                        }
+
+                        //缓存七天
+                        _sysCacheService.Set(addCacheKey2, addressList, TimeSpan.FromDays(7));
+                        templateData.Add(addCacheKey2, addressList.Serialize());
+                        #endregion
+                    }
+                }
+                if (level)
+                {
+                    if (_sysCacheService.Exists(addCacheKey))
+                    {
+                        templateData.Add(addCacheKey, _sysCacheService.Get(addCacheKey));
+                    }
+                    else
+                    {
+                        var addressEntityList = await _provinceService.GetList();
+
+                        #region 处理省市区树
+                        addressEntityList.Where(x => x.Type == "1").ToList().ForEach(item =>
+                        {
+                            item.QuickQuery = item.FullName;
+                        });
+                        addressEntityList.Where(x => x.Type == "2").ToList().ForEach(item =>
+                        {
+                            item.QuickQuery = addressEntityList.Find(x => x.Id == item.ParentId).QuickQuery + "/" + item.FullName;
+                        });
+                        addressEntityList.Where(x => x.Type == "3").ToList().ForEach(item =>
+                        {
+                            item.QuickQuery = addressEntityList.Find(x => x.Id == item.ParentId).QuickQuery + "/" + item.FullName;
+                        });
+                        #endregion
+
+                        #region 分开 省市区街道 数据
+                        List<Dictionary<string, string>> addressList = new List<Dictionary<string, string>>();
+                        foreach (var item in addressEntityList.Where(x => x.Type == "1").ToList())
+                        {
+                            Dictionary<string, string> address = new Dictionary<string, string>();
+                            address.Add(item.Id, item.QuickQuery);
+                            addressList.Add(address);
+                        }
+                        foreach (var item in addressEntityList.Where(x => x.Type == "2").ToList())
+                        {
+                            Dictionary<string, string> address = new Dictionary<string, string>();
+                            address.Add(item.Id, item.QuickQuery);
+                            addressList.Add(address);
+                        }
+                        foreach (var item in addressEntityList.Where(x => x.Type == "3").ToList())
+                        {
+                            Dictionary<string, string> address = new Dictionary<string, string>();
+                            address.Add(item.Id, item.QuickQuery);
+                            addressList.Add(address);
+                        }
+                        #endregion
+
+                        //缓存七天
+                        _sysCacheService.Set(addCacheKey, addressList, TimeSpan.FromDays(7));
+                        templateData.Add(addCacheKey, addressList.Serialize());
+                    }
+                }
+            }
+            #endregion
+
+            #region 用户单独处理
+            if (formData.Where(x => x.__config__.jnpfKey == "userSelect").Any())
+            {
+                var userCacheKey = CommonConst.VISUALDEV + "_userSelect";
+                if (_sysCacheService.Exists(userCacheKey))
+                {
+                    templateData.Add(userCacheKey, _sysCacheService.Get(userCacheKey));
+                }
+                else
+                {
+                    var userEntityList = await _userService.GetUserListByExp(x => x.DeleteMark == null
+                    , x => new System.Entitys.Permission.UserEntity() { Id = x.Id, RealName = x.RealName, Account = x.Account });
+
+                    List<Dictionary<string, string>> userList = new List<Dictionary<string, string>>();
+                    foreach (var item in userEntityList)
+                    {
+                        Dictionary<string, string> user = new Dictionary<string, string>();
+                        user.Add(item.Id, item.RealName + "/" + item.Account);
+                        userList.Add(user);
+                    }
+                    //缓存0.5小时
+                    _sysCacheService.Set(userCacheKey, userList, TimeSpan.FromMinutes(30));
+                    templateData.Add(userCacheKey, userList.Serialize());
+                }
+            }
+            #endregion
+
+            #endregion
             return templateData;
         }
 
@@ -4764,5 +6466,293 @@ namespace JNPF.VisualDev.Core
             return diclist;
         }
         #endregion
+
+        /// <summary>
+        /// 解析 处理 条形码和二维码
+        /// </summary>
+        /// <param name="fieldsModels"></param>
+        private void GetBARAndQR(List<FieldsModel> fieldsModels, Dictionary<string, object> _newDataMap, Dictionary<string, object> _dataMap)
+        {
+            //处理 条形码 、 二维码 控件
+            fieldsModels.Where(x => x.__config__.jnpfKey == "barcode" || x.__config__.jnpfKey == "qrcode").Where(x => !string.IsNullOrWhiteSpace(x.relationField)).ToList().ForEach(item =>
+            {
+                if (!_newDataMap.ContainsKey(item.relationField + "_id") && _dataMap.ContainsKey(item.relationField))
+                    _newDataMap.Add(item.relationField + "_id", _dataMap[item.relationField]);
+            });
+        }
+
+        /// <summary>
+        /// 获取弹窗选择 数据列表
+        /// </summary>
+        /// <param name="interfaceId"></param>
+        /// <param name="model"></param>
+        /// <returns></returns>
+        public async Task<List<Dictionary<string, string>>> GetPopupSelectDataList(string interfaceId, FieldsModel model)
+        {
+            var result = new List<Dictionary<string, string>>();
+
+            //获取远端数据
+            var dynamic = await _dataInterfaceService.GetInfo(interfaceId);
+            if (dynamic == null) return null;
+            switch (dynamic.DataType)
+            {
+                //SQL数据
+                case 1:
+                    {
+                        _dataInterfaceService.ReplaceParameterValue(dynamic, new Dictionary<string, string>());
+                        var pObj = await _dataInterfaceService.GetData(dynamic);
+                        result = pObj.Serialize().Deserialize<List<Dictionary<string, string>>>();
+                    }
+                    break;
+                //静态数据
+                case 2:
+                    {
+                        List<Dictionary<string, string>> dynamicList = new List<Dictionary<string, string>>();
+                        var value = model.props.props.value;
+                        var label = model.props.props.label;
+                        var children = model.props.props.children;
+                        JToken dynamicDataList = JValue.Parse(dynamic.Query);
+                        foreach (var data in dynamicDataList)
+                        {
+                            Dictionary<string, string> dic = new Dictionary<string, string>();
+                            dic[value] = data.Value<string>(value);
+                            dic[label] = data.Value<string>(label);
+                            dynamicList.Add(dic);
+                            if (data.Value<object>(children) != null && data.Value<object>(children).ToString() != "")
+                            {
+                                dynamicList.AddRange(GetDynamicInfiniteData(data.Value<object>(children).ToString(), model.props.props));
+                            }
+                        }
+
+                        result = dynamicList;
+                    }
+                    break;
+                //Api数据
+                case 3:
+                    {
+                        var interFace = dynamic.Path;
+                        var response = await interFace.GetAsStringAsync();//请求接口
+                        var res = JSON.Deserialize<RESTfulResult<object>>(response);
+                        var data = res.data?.ToString().Deserialize<Dictionary<string, List<Dictionary<string, string>>>>().FirstOrDefault().Value;
+                        result = data;
+                    }
+                    break;
+                default:
+                    break;
+            }
+
+            return result;
+        }
+    }
+
+    /// <summary>
+    /// 在线开发 模板解析帮助 类
+    /// </summary>
+    public class TemplateParsingHelp
+    {
+        /// <summary>
+        /// 是否有表 (true 有表, false 无表)
+        /// </summary>
+        public bool IsHasTable { get; set; }
+
+        /// <summary>
+        /// 表单配置JSON模型
+        /// </summary>
+        public FormDataModel FormModel { get; set; }
+
+        /// <summary>
+        /// 列配置JSON模型
+        /// </summary>
+        public ColumnDesignModel ColumnData { get; set; }
+
+        /// <summary>
+        /// 所有控件集合
+        /// </summary>
+        public List<FieldsModel> AllFieldsModel { get; set; }
+
+        /// <summary>
+        /// 所有控件集合(已剔除布局控件)
+        /// </summary>
+        public List<FieldsModel> FieldsModelList { get; set; }
+
+        /// <summary>
+        /// 主表控件集合
+        /// </summary>
+        public List<FieldsModel> MainTableFieldsModelList { get; set; }
+
+        /// <summary>
+        /// 副表控件集合
+        /// </summary>
+        public List<FieldsModel> AuxiliaryTableFieldsModelList { get; set; }
+
+        /// <summary>
+        /// 子表控件集合
+        /// </summary>
+        public List<FieldsModel> ChildTableFieldsModelList { get; set; }
+
+        /// <summary>
+        /// 所有非子表控件集合
+        /// </summary>
+        public List<FieldsModel> SingleFormData { get; set; }
+
+        /// <summary>
+        /// 所有表
+        /// </summary>
+        public List<TableModel> AllTable { get; set; }
+
+        /// <summary>
+        /// 主表 表名
+        /// </summary>
+        public string MainTableName { get; set; }
+
+        /// <summary>
+        /// 在线开发 模板解析帮助 构造
+        /// </summary>
+        /// <param name="entity">模板实体</param>
+        public TemplateParsingHelp(VisualDevEntity entity, bool isFlowTask = false)
+        {
+            FormDataModel FormModel = !isFlowTask ? TemplateKeywordsHelper.ReplaceKeywords(entity.FormData).ToObject<FormDataModel>() : entity.FormData.ToObject<FormDataModel>();
+            IsHasTable = !string.IsNullOrEmpty(entity.Tables) && !"[]".Equals(entity.Tables);//是否有表
+            AllFieldsModel = FormModel.fields;//所有控件集合
+            FieldsModelList = TemplateDataConvert(FormModel.fields);//已剔除布局控件集合
+            MainTableName = entity.Tables.ToString().Deserialize<List<TableModel>>().Find(m => m.relationTable == "")?.table;//主表名称
+            //处理旧控件 部分没有 tableName
+            FieldsModelList.Where(x => string.IsNullOrWhiteSpace(x.__config__.tableName)).ToList().ForEach(item =>
+            {
+                if (item.__vModel__.Contains("_jnpf_")) item.__config__.tableName = item.__vModel__.ReplaceRegex(@"_jnpf_(\w+)", "").Replace("jnpf_", "");//副表
+                else item.__config__.tableName = MainTableName;//主表
+            });
+            AllTable = entity.Tables.ToObject<List<TableModel>>();//所有表
+            AuxiliaryTableFieldsModelList = FieldsModelList.Where(x => x.__vModel__.Contains("_jnpf_")).ToList();//单控件副表集合
+            ChildTableFieldsModelList = FieldsModelList.Where(x => x.__config__.jnpfKey == "table").ToList();//子表集合
+            MainTableFieldsModelList = FieldsModelList.Except(AuxiliaryTableFieldsModelList).Except(ChildTableFieldsModelList).ToList();//主表控件集合
+            SingleFormData = FieldsModelList.Where(x => x.__config__.jnpfKey != "table").ToList();//非子表集合
+
+            if (!string.IsNullOrWhiteSpace(entity.ColumnData)) ColumnData = TemplateKeywordsHelper.ReplaceKeywords(entity.ColumnData).Deserialize<ColumnDesignModel>();//列配置模型
+            else ColumnData = new ColumnDesignModel();
+        }
+
+        /// <summary>
+        /// 验证模板
+        /// </summary>
+        /// <returns>true 通过</returns>
+        public bool VerifyTemplate()
+        {
+            if (FieldsModelList.Count(x => x.__config__.jnpfKey == "table") > 0)
+            {
+                foreach (var item in ChildTableFieldsModelList)
+                {
+                    var tc = AuxiliaryTableFieldsModelList.Find(x => x.__vModel__.Contains(item.__config__.tableName + "_jnpf_"));
+                    if (tc != null) return false;
+                };
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// 时间控件 查询时转换：DateTime.MaxValue + 查询时间
+        /// </summary>
+        /// <param name="queryJson"></param>
+        /// <returns>queryJson</returns>
+        public string TimeControlQueryConvert(string queryJson)
+        {
+            if (!string.IsNullOrWhiteSpace(queryJson))
+            {
+                var mainFormData = FieldsModelList.Where(x => x.__config__.jnpfKey == "time").ToList();//获取所有 时间 控件
+                var newJson = new Dictionary<string, object>();
+
+                var sjson = queryJson.ToObject<Dictionary<string, object>>().ToList();
+                sjson.ForEach(item =>
+                {
+                    var vlist = new List<object>();
+                    var vmodel = mainFormData.Find(x => x.__vModel__ == item.Key);
+                    if (vmodel != null)
+                    {
+                        item.Value.ToJson().Deserialize<List<string>>().ForEach(it =>
+                        {
+                            vlist.Add(Ext.ConvertToTimeStamp((DateTime.MaxValue.ToDateString() + " " + it).ToDate()));
+                        });
+                        newJson.Add(item.Key, vlist);
+                    }
+                    else
+                    {
+                        newJson.Add(item.Key, item.Value);
+                    }
+                });
+
+                return newJson.Serialize();
+            }
+
+            return queryJson;
+        }
+
+
+        /// <summary>
+        /// 模板数据转换
+        /// </summary>
+        /// <param name="fieldsModelList"></param>
+        /// <returns></returns>
+        private List<FieldsModel> TemplateDataConvert(List<FieldsModel> fieldsModelList)
+        {
+            var template = new List<FieldsModel>();
+            //将模板内的无限children解析出来
+            //不包含子表children
+            foreach (var item in fieldsModelList)
+            {
+                var config = item.__config__;
+                switch (config.jnpfKey)
+                {
+                    //栅格布局
+                    case "row":
+                        {
+                            template.AddRange(TemplateDataConvert(config.children));
+                        }
+                        break;
+                    //表格
+                    case "table":
+                        {
+                            template.Add(item);
+                        }
+                        break;
+                    //卡片
+                    case "card":
+                        {
+                            template.AddRange(TemplateDataConvert(config.children));
+                        }
+                        break;
+                    //折叠面板
+                    case "collapse":
+                        {
+                            foreach (var collapse in config.children)
+                            {
+                                template.AddRange(TemplateDataConvert(collapse.__config__.children));
+                            }
+                        }
+                        break;
+                    case "tab":
+                        foreach (var collapse in config.children)
+                        {
+                            template.AddRange(TemplateDataConvert(collapse.__config__.children));
+                        }
+                        break;
+                    //文本
+                    case "JNPFText":
+                        break;
+                    //分割线
+                    case "divider":
+                        break;
+                    //分组标题
+                    case "groupTitle":
+                        break;
+                    default:
+                        {
+                            template.Add(item);
+                        }
+                        break;
+                }
+            }
+            return template;
+        }
     }
 }

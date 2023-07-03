@@ -9,6 +9,9 @@ using JNPF.Dependency;
 using JNPF.JsonSerialization;
 using Microsoft.Net.Http.Headers;
 using System.Text.RegularExpressions;
+using System.Net.Sockets;
+using System.Net;
+using System.Text;
 
 namespace JNPF.Common.Util
 {
@@ -19,54 +22,104 @@ namespace JNPF.Common.Util
     /// 作 者：JNPF开发平台组
     /// </summary>
     [SuppressSniffer]
-    public class NetUtil
+    public static class NetUtil
     {
-
-        private readonly HttpContext _httpContext;
-
-        public NetUtil(IHttpContextAccessor httpContextAccessor)
-        {
-            _httpContext = App.HttpContext;
-        }
 
         #region Ip(获取Ip)
 
         /// <summary>
         /// 获取Ip
         /// </summary>
-        public string Ip
+        public static string Ip
         {
             get
             {
-                var remoteIp = GetWebProxyRealIp() ?? _httpContext.Connection.RemoteIpAddress.ToString();
-                if (remoteIp == "::1" || remoteIp == "")
+                var result = string.Empty;
+                if (App.HttpContext != null)
                 {
-                    remoteIp = "127.0.0.1";
+                    result = GetWebClientIp();
                 }
-                return remoteIp;
+
+                if (string.IsNullOrEmpty(result))
+                {
+                    result = GetLanIp();
+                }
+
+                return result;
             }
         }
+
         /// <summary>
-        /// 获取Web代理真实IP
+        /// 得到客户端IP地址
         /// </summary>
         /// <returns></returns>
-        private string GetWebProxyRealIp()
+        private static string GetWebClientIp()
         {
-            var request = _httpContext.Request;
-            string ip = request.Headers["x-forwarded-for"];
-            if (string.IsNullOrEmpty(ip) || string.Equals("unknown", ip, StringComparison.OrdinalIgnoreCase))
+            var ip = GetWebRemoteIp();
+            foreach (var hostAddress in Dns.GetHostAddresses(ip))
             {
-                ip = request.Headers["Proxy-Client-IP"];
+                if (hostAddress.AddressFamily == AddressFamily.InterNetwork)
+                {
+                    return hostAddress.ToString();
+                }
             }
-            if (string.IsNullOrEmpty(ip) || string.Equals("unknown", ip, StringComparison.OrdinalIgnoreCase))
+
+            return string.Empty;
+        }
+
+        /// <summary>
+        /// 得到局域网IP地址
+        /// </summary>
+        /// <returns></returns>
+        public static string GetLanIp()
+        {
+            foreach (var hostAddress in Dns.GetHostAddresses(Dns.GetHostName()))
             {
-                ip = request.Headers["WL-Proxy-Client-IP"];
+                if (hostAddress.AddressFamily == AddressFamily.InterNetwork)
+                {
+                    return hostAddress.ToString();
+                }
             }
-            if (string.IsNullOrEmpty(ip))
-            {
+
+            return string.Empty;
+        }
+
+        /// <summary>
+        /// 得到远程Ip地址
+        /// </summary>
+        /// <returns></returns>
+        private static string GetWebRemoteIp()
+        {
+            if (App.HttpContext?.Connection?.RemoteIpAddress == null)
                 return string.Empty;
+            var ip = App.HttpContext?.Connection?.RemoteIpAddress.ToString();
+            if (App.HttpContext == null)
+                return ip;
+            if (App.HttpContext.Request.Headers.ContainsKey("X-Real-IP"))
+            {
+                ip = App.HttpContext.Request.Headers["X-Real-IP"].ToString();
             }
+
+            if (App.HttpContext.Request.Headers.ContainsKey("X-Forwarded-For"))
+            {
+                ip = App.HttpContext.Request.Headers["X-Forwarded-For"].ToString();
+            }
+
             return ip;
+        }
+
+        /// <summary>
+        /// 请求Url
+        /// </summary>
+        public static string Url
+        {
+            get
+            {
+                var url = new StringBuilder().Append(App.HttpContext?.Request?.Scheme).Append("://")
+                    .Append(App.HttpContext?.Request?.Host).Append(App.HttpContext?.Request?.PathBase)
+                    .Append(App.HttpContext?.Request?.Path).Append(App.HttpContext?.Request?.QueryString).ToString();
+                return url;
+            }
         }
 
         #endregion

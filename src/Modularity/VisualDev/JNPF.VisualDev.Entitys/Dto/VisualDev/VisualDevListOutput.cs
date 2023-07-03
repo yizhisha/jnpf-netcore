@@ -32,6 +32,11 @@ namespace JNPF.VisualDev.Entitys.Dto.VisualDev
         public int type { get; set; }
 
         /// <summary>
+        /// 模式
+        /// </summary>
+        public int? webType { get; set; }
+
+        /// <summary>
         /// 分类ID
         /// </summary>
         public string category { get; set; }
