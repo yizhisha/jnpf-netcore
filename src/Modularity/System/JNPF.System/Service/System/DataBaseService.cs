@@ -1,4 +1,5 @@
 ﻿using JNPF.Common.Core.Manager;
+using JNPF.Common.Core.Manager.DataBase;
 using JNPF.Common.Enum;
 using JNPF.Common.Extension;
 using JNPF.Common.Filter;
@@ -46,6 +47,7 @@ namespace JNPF.System.Core.Service.DataBase
         private readonly IDbLinkService _dbLinkService;
         private readonly IAuthorizeService _authorizeService;
         private readonly IFileService _fileService;
+        private readonly IChangeDataBase _changeDataBase;
 
         /// <summary>
         /// 
@@ -53,13 +55,16 @@ namespace JNPF.System.Core.Service.DataBase
         /// <param name="sqlSugarRepository"></param>
         /// <param name="dbLinkService"></param>
         /// <param name="userManager"></param>
-        public DataBaseService(ISqlSugarRepository<UserEntity> sqlSugarRepository, IDbLinkService dbLinkService, IUserManager userManager, IAuthorizeService authorizeService, IFileService fileService)
+        public DataBaseService(ISqlSugarRepository<UserEntity> sqlSugarRepository, IDbLinkService dbLinkService, 
+            IUserManager userManager, IAuthorizeService authorizeService, IFileService fileService,
+            IChangeDataBase changeDataBase)
         {
             db = sqlSugarRepository.Context;
             _dbLinkService = dbLinkService;
             _userManager = userManager;
             _authorizeService = authorizeService;
             _fileService = fileService;
+            _changeDataBase = changeDataBase;
         }
 
         #region GET
@@ -72,11 +77,37 @@ namespace JNPF.System.Core.Service.DataBase
         [HttpGet("{id}/Tables")]
         public async Task<dynamic> GetList_Api(string id, [FromQuery] KeywordInput input)
         {
+
+            #region Old
+            //try
+            //{
+            //    var link = (await _dbLinkService.GetInfo(id));
+            //    ChangeDatabase(link);
+            //    var tables = db.DbMaintenance.GetTableInfoList(false);
+            //    var output = tables.Adapt<List<DatabaseTableListOutput>>();
+            //    if (!string.IsNullOrEmpty(input.keyword))
+            //        output = output.FindAll(d => d.table.ToLower().Contains(input.keyword.ToLower()) || (d.tableName.IsNotEmptyOrNull() && d.tableName.ToLower().Contains(input.keyword.ToLower())));
+            //    GetTableCount(output);
+            //    return new { list = output.OrderBy(x => x.table).ToList() };
+            //}
+            //catch (Exception ex)
+            //{
+            //    var data = new List<DatabaseTableListOutput>();
+            //    return new { list = data };
+            //}
+            #endregion
+
+            #region New
+
             try
             {
                 var link = (await _dbLinkService.GetInfo(id));
-                ChangeDatabase(link);
-                var tables = db.DbMaintenance.GetTableInfoList(false);
+                if (link == null)
+                {
+                    link = GetTenantDbLink();
+                }
+                var tables = _changeDataBase.GetTableInfos(link);
+                tables = tables.Where((x, i) => tables.FindIndex(z => z.Name == x.Name) == i).ToList();
                 var output = tables.Adapt<List<DatabaseTableListOutput>>();
                 if (!string.IsNullOrEmpty(input.keyword))
                     output = output.FindAll(d => d.table.ToLower().Contains(input.keyword.ToLower()) || (d.tableName.IsNotEmptyOrNull() && d.tableName.ToLower().Contains(input.keyword.ToLower())));
@@ -88,6 +119,8 @@ namespace JNPF.System.Core.Service.DataBase
                 var data = new List<DatabaseTableListOutput>();
                 return new { list = data };
             }
+
+            #endregion
         }
 
         /// <summary>
@@ -1199,6 +1232,25 @@ namespace JNPF.System.Core.Service.DataBase
         #endregion
 
         #region PrivateMethod
+
+        /// <summary>
+        /// 获取多租户Link
+        /// </summary>
+        /// <returns></returns>
+        private DbLinkEntity GetTenantDbLink()
+        {
+            return new DbLinkEntity
+            {
+                Id = _userManager.TenantId,
+                ServiceName = _userManager.TenantDbName,
+                DbType = App.Configuration["ConnectionStrings:DBType"],
+                Host = App.Configuration["ConnectionStrings:Host"],
+                Port = App.Configuration["ConnectionStrings:Port"].ToInt(),
+                UserName = App.Configuration["ConnectionStrings:UserName"],
+                Password = App.Configuration["ConnectionStrings:Password"]
+            };
+        }
+
         /// <summary>
         /// 是否系统表
         /// </summary>

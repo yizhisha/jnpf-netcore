@@ -1,5 +1,6 @@
 ﻿using JNPF.Basics.Models.PlatForm.Dtos.DbLink;
 using JNPF.Common.Enum;
+using JNPF.Common.Extension;
 using JNPF.Common.Filter;
 using JNPF.Common.Util;
 using JNPF.Dependency;
@@ -51,44 +52,46 @@ namespace JNPF.System.Core.Service.DbLink
         /// </summary>
         /// <returns></returns>
         [HttpGet("")]
-        public async Task<dynamic> GetList_Api([FromQuery] KeywordInput input)
+        public async Task<dynamic> GetList_Api([FromQuery] DbLinkListInput input)
         {
-            var data = await GetList();
-            //数据库分类
-            var dbTypeList = (await _dictionaryDataService.GetList("dbType")).FindAll(x=>x.EnabledMark==1);
-            if (!string.IsNullOrEmpty(input.keyword))
-            {
-                data = data.FindAll(t => t.fullName.ToLower().Contains(input.keyword.ToLower()) || t.host.ToLower().Contains(input.keyword.ToLower()));
-            }
-            var result = new List<DbLinkListOutput>();
-            result.Add(new DbLinkListOutput()
-            {
-                id = "-1",
-                parentId = "0",
-                fullName = "未分类",
-                host = "",
-                num = data.FindAll(x => x.parentId == null).Count
-            });
-            foreach (var item in dbTypeList)
-            {
-                var index = data.FindAll(x => x.dbType.Equals(item.EnCode)).Count;
-                if (index>0)
-                {
-                    result.Add(new DbLinkListOutput()
-                    {
-                        id = item.Id,
-                        fullName = item.FullName,
-                        host = "",
-                        num = index
-                    });
-                }
-            }
-            var treeList = result.Union(data).ToList();
-            if (!string.IsNullOrEmpty(input.keyword))
-            {
-                treeList = treeList.TreeWhere(t => t.fullName.ToLower().Contains(input.keyword.ToLower()) || t.host.ToLower().Contains(input.keyword.ToLower()), t => t.id, t => t.parentId);
-            }
-            return new { list = treeList.ToTree() };
+            //var data = await GetList();
+            ////数据库分类
+            //var dbTypeList = (await _dictionaryDataService.GetList("dbType")).FindAll(x=>x.EnabledMark==1);
+            //if (!string.IsNullOrEmpty(input.keyword))
+            //{
+            //    data = data.FindAll(t => t.fullName.ToLower().Contains(input.keyword.ToLower()) || t.host.ToLower().Contains(input.keyword.ToLower()));
+            //}
+            //var result = new List<DbLinkListOutput>();
+            //result.Add(new DbLinkListOutput()
+            //{
+            //    id = "-1",
+            //    parentId = "0",
+            //    fullName = "未分类",
+            //    host = "",
+            //    num = data.FindAll(x => x.parentId == null).Count
+            //});
+            //foreach (var item in dbTypeList)
+            //{
+            //    var index = data.FindAll(x => x.dbType.Equals(item.EnCode)).Count;
+            //    if (index>0)
+            //    {
+            //        result.Add(new DbLinkListOutput()
+            //        {
+            //            id = item.Id,
+            //            fullName = item.FullName,
+            //            host = "",
+            //            num = index
+            //        });
+            //    }
+            //}
+            //var treeList = result.Union(data).ToList();
+            //if (!string.IsNullOrEmpty(input.keyword))
+            //{
+            //    treeList = treeList.TreeWhere(t => t.fullName.ToLower().Contains(input.keyword.ToLower()) || t.host.ToLower().Contains(input.keyword.ToLower()), t => t.id, t => t.parentId);
+            //}
+            //return new { list = treeList.ToTree() };
+            var data = await GetPageList(input);
+            return data;
         }
 
         /// <summary>
@@ -301,6 +304,37 @@ namespace JNPF.System.Core.Service.DbLink
             {
                 return false;
             }
+        }
+
+        /// <summary>
+        /// 列表(分页)
+        /// </summary>
+        /// <returns></returns>
+        [NonAction]
+        public async Task<dynamic> GetPageList(DbLinkListInput input)
+        {
+            var list = await _dbLinkRepository.Context.Queryable<DbLinkEntity, UserEntity, UserEntity>(
+                (a, b, c) => new JoinQueryInfos(
+                    JoinType.Left, a.CreatorUserId == b.Id,
+                    JoinType.Left, a.LastModifyUserId == c.Id))
+                    .Where((a, b, c) => a.DeleteMark == null).WhereIF(input.dbType.IsNotEmptyOrNull(), a => a.DbType == input.dbType).
+                    WhereIF(input.keyword.IsNotEmptyOrNull(), a => a.FullName.Contains(input.keyword)).
+                    Select((a, b, c) => new DbLinkListOutput()
+                    {
+                        id = a.Id,
+                        creatorTime = a.CreatorTime,
+                        creatorUser = SqlFunc.MergeString(b.RealName, "/", b.Account),
+                        dbType = a.DbType,
+                        enabledMark = a.EnabledMark,
+                        fullName = a.FullName,
+                        host = a.Host,
+                        lastModifyTime = a.LastModifyTime,
+                        lastModifyUser = SqlFunc.MergeString(c.RealName, "/", c.Account),
+                        port = a.Port.ToString(),
+                        sortCode = a.SortCode
+                    }).MergeTable()
+                    .Distinct().OrderBy(o => o.sortCode).OrderBy(o => o.creatorTime, OrderByType.Desc).OrderByIF(!string.IsNullOrEmpty(input.keyword), t => t.lastModifyTime, OrderByType.Desc).ToPagedListAsync(input.currentPage, input.pageSize);
+            return PageResult<DbLinkListOutput>.SqlSugarPageResult(list);
         }
         #endregion
     }
